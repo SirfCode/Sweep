@@ -37,24 +37,29 @@ class SuitPainter extends CustomPainter {
         path.cubicTo(92, -15, 120, 45, 50, 93);
         path.close();
       case 3:
-        path.moveTo(50, 3);
-        path.cubicTo(30, 30, -10, 58, 18, 76);
-        path.cubicTo(30, 84, 43, 72, 50, 65);
-        path.cubicTo(57, 72, 70, 84, 82, 76);
-        path.cubicTo(110, 58, 70, 30, 50, 3);
+        // A narrow spear silhouette contrasts with the club's round lobes.
+        path.moveTo(50, 1);
+        path.cubicTo(43, 23, 15, 44, 15, 60);
+        path.cubicTo(15, 78, 38, 81, 50, 65);
+        path.cubicTo(62, 81, 85, 78, 85, 60);
+        path.cubicTo(85, 44, 57, 23, 50, 1);
         path.close();
-        path.moveTo(50, 55);
-        path.quadraticBezierTo(48, 85, 32, 97);
-        path.lineTo(68, 97);
-        path.quadraticBezierTo(52, 85, 50, 55);
+        path.moveTo(46, 64);
+        path.quadraticBezierTo(46, 86, 38, 98);
+        path.lineTo(62, 98);
+        path.quadraticBezierTo(54, 86, 54, 64);
+        path.close();
       default:
-        canvas.drawCircle(const Offset(50, 26), 23, p);
-        canvas.drawCircle(const Offset(27, 58), 23, p);
-        canvas.drawCircle(const Offset(73, 58), 23, p);
-        path.moveTo(50, 45);
-        path.quadraticBezierTo(48, 84, 30, 97);
-        path.lineTo(70, 97);
-        path.quadraticBezierTo(52, 84, 50, 45);
+        // Deep open notches preserve three distinct circles at corner size.
+        canvas.drawCircle(const Offset(50, 23), 20, p);
+        canvas.drawCircle(const Offset(23, 58), 21, p);
+        canvas.drawCircle(const Offset(77, 58), 21, p);
+        canvas.drawCircle(const Offset(50, 53), 12, p);
+        path.moveTo(44, 57);
+        path.quadraticBezierTo(44, 83, 29, 94);
+        path.lineTo(71, 94);
+        path.quadraticBezierTo(56, 83, 56, 57);
+        path.close();
     }
     canvas.drawPath(path, p);
     canvas.restore();
@@ -138,7 +143,7 @@ class CardFace extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          symbol(large ? 14 : 11),
+                          symbol(large ? 16 : 12),
                         ],
                       ),
                     ),
@@ -146,25 +151,13 @@ class CardFace extends StatelessWidget {
                       left: large ? 19 : 15,
                       top: large ? 24 : 19,
                       child: Center(
-                        child: rank <= 10
+                        child: rank > 1 && rank <= 10
                             ? symbol(large ? 36 : 26)
-                            : Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.workspace_premium,
-                                      color: const Color(0xFF94702E),
-                                      size: large ? 19 : 13),
-                                  symbol(large ? 25 : 18),
-                                  Text(
-                                    '$rank',
-                                    style: TextStyle(
-                                      color: color,
-                                      fontSize: large ? 14 : 11,
-                                      fontWeight: FontWeight.w800,
-                                      height: 1.15,
-                                    ),
-                                  ),
-                                ],
+                            : SizedBox(
+                                width: large ? 39 : 28,
+                                height: large ? 64 : 46,
+                                child: CustomPaint(
+                                    painter: RoyalPainter(rank, suit, color)),
                               ),
                       ),
                     ),
@@ -177,6 +170,152 @@ class CardFace extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Compact vector engravings remain sharp when table cards are enlarged.
+class RoyalPainter extends CustomPainter {
+  final int rank, suit;
+  final Color color;
+  const RoyalPainter(this.rank, this.suit, this.color);
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 60, size.height / 96);
+    final gilt = Paint()..color = const Color(0xFF94702E);
+    final dark = Paint()..color = color;
+    final paper = Paint()..color = cream;
+    final line = Paint()
+      ..color = const Color(0xFF94702E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    void shape(List<Offset> points, Paint paint) {
+      canvas.drawPath(Path()..addPolygon(points, true), paint);
+    }
+
+    void suitAt(double x, double y, double extent) {
+      canvas.save();
+      canvas.translate(x, y);
+      SuitPainter(suit, color).paint(canvas, Size.square(extent));
+      canvas.restore();
+    }
+
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            const Rect.fromLTWH(2, 2, 56, 92), const Radius.circular(24)),
+        line);
+    if (rank == 1) {
+      for (final side in [-1, 1]) {
+        for (var i = 0; i < 6; i++) {
+          final y = 28.0 + i * 8;
+          canvas.drawOval(
+              Rect.fromCenter(
+                  center: Offset(30.0 + side * (21 - (i - 3).abs()), y),
+                  width: 5,
+                  height: 9),
+              gilt);
+        }
+      }
+      suitAt(12, 27, 36);
+      shape(
+          const [Offset(30, 8), Offset(34, 14), Offset(30, 20), Offset(26, 14)],
+          gilt);
+      canvas.drawLine(const Offset(22, 79), const Offset(38, 79), line);
+      canvas.drawCircle(const Offset(30, 85), 2, gilt);
+    } else {
+      // Mantle, contrasting lapels and engraved gold seams.
+      shape(const [
+        Offset(7, 78),
+        Offset(13, 58),
+        Offset(25, 52),
+        Offset(36, 52),
+        Offset(49, 61),
+        Offset(54, 78)
+      ], dark);
+      shape(const [
+        Offset(17, 58),
+        Offset(30, 77),
+        Offset(42, 58),
+        Offset(34, 55),
+        Offset(27, 55)
+      ], gilt);
+      for (var i = 0; i < 4; i++) {
+        canvas.drawLine(
+            Offset(12.0 + i * 3, 65), Offset(10.0 + i * 3, 76), line);
+        canvas.drawLine(
+            Offset(42.0 + i * 3, 65), Offset(44.0 + i * 3, 76), line);
+      }
+      canvas.drawOval(const Rect.fromLTWH(15, 22, 31, 39), dark);
+      canvas.drawOval(const Rect.fromLTWH(22, 26, 20, 29), paper);
+      canvas.drawLine(const Offset(25, 36), const Offset(30, 36), line);
+      canvas.drawLine(const Offset(35, 36), const Offset(39, 36), line);
+      canvas.drawPath(
+          Path()
+            ..moveTo(33, 37)
+            ..lineTo(31, 43)
+            ..lineTo(35, 43),
+          line);
+      canvas.drawLine(const Offset(29, 48), const Offset(36, 48), line);
+      if (rank == 13) {
+        shape(const [
+          Offset(22, 45),
+          Offset(30, 50),
+          Offset(41, 44),
+          Offset(38, 57),
+          Offset(31, 64),
+          Offset(24, 57)
+        ], dark);
+        for (var i = 0; i < 3; i++) {
+          canvas.drawLine(
+              Offset(27.0 + i * 4, 52), Offset(30.0 + i * 2, 59), line);
+        }
+      }
+      if (rank == 11) {
+        canvas.drawOval(const Rect.fromLTWH(12, 19, 35, 10), dark);
+        shape(const [
+          Offset(18, 24),
+          Offset(20, 14),
+          Offset(35, 12),
+          Offset(42, 24)
+        ], dark);
+        canvas.drawOval(const Rect.fromLTWH(39, 3, 7, 20), gilt);
+        canvas.drawLine(const Offset(40, 23), const Offset(44, 5), line);
+      } else {
+        shape(const [
+          Offset(19, 26),
+          Offset(16, 12),
+          Offset(25, 18),
+          Offset(31, 7),
+          Offset(37, 18),
+          Offset(46, 12),
+          Offset(42, 26)
+        ], gilt);
+        canvas.drawCircle(const Offset(31, 20), 2.5, dark);
+        if (rank == 12) {
+          canvas.drawCircle(const Offset(20, 44), 2.5, gilt);
+          canvas.drawCircle(const Offset(43, 44), 2.5, gilt);
+        }
+      }
+      suitAt(5, 80, 11);
+      final label = TextPainter(
+          text: TextSpan(
+              text: '$rank',
+              style: TextStyle(
+                  color: color,
+                  fontFamily: 'Georgia',
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold)),
+          textDirection: TextDirection.ltr)
+        ..layout();
+      label.paint(canvas, Offset(32 - label.width / 2, 79));
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(RoyalPainter oldDelegate) =>
+      oldDelegate.rank != rank ||
+      oldDelegate.suit != suit ||
+      oldDelegate.color != color;
 }
 
 class CardBack extends StatelessWidget {
@@ -271,11 +410,24 @@ class PlayerSeat extends StatelessWidget {
                           ]
                         : []),
                 alignment: Alignment.center,
-                child: Text(seatNames[seat],
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: active ? ink : cream,
-                        fontWeight: FontWeight.w600)))));
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(seatNames[seat],
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: active ? ink : cream,
+                          fontWeight: FontWeight.w600)),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.style_outlined,
+                        size: 10, color: active ? ink : cream),
+                    const SizedBox(width: 2),
+                    Text('$count',
+                        key: Key('cards-left-$seat'),
+                        style: TextStyle(
+                            fontSize: 10,
+                            height: 1,
+                            color: active ? ink : cream)),
+                  ]),
+                ]))));
   }
 }
 

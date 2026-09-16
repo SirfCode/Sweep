@@ -2,7 +2,9 @@
 
 An offline Flutter card game planned for Android first, then iPhone. One human and a bot partner play against two bots. SWEEP_RULES.md is the authoritative rules reference; MOBILE_GAME_PLAN.md describes the proposed interface and milestones.
 
-## Version 0.4 — larger table and clearer cards
+## Version 0.5 — free guest play
+
+This release is the free guest version: play without signing in, against three bots. Progress is saved locally on the current device/browser; no account is required.
 
 Playable offline partnership Sweep: one human, a bot partner (Ari), and two opponent bots (Mira and Dev). Includes opening calls, all four move types, ordinary and pakka houses, commitments, sweeps, deal scoring, cumulative games, dealer rotation, and save/resume. The rulebook is available inside the app.
 
@@ -22,7 +24,7 @@ Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` recei
 
 Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.
 
-Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.4.0` on `codex/0.2-table-ui`; the package version is `0.4.0+4`.
+Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.5.0` on `codex/0.2-table-ui`; the package version is `0.5.0+5`.
 
 ## Run on the configured emulator
 

@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
+- Free guest play without login, with local save/resume.
+- Remove the empty-table message and decorative placeholder.
+
+- Show small remaining-card counters for all four players and the original caller's name on the call card.
+- Distinguish clubs with wide, separated round lobes from narrow, pointed spades, and enlarge corner suit symbols.
+- Add ornamental Aces and illustrated Jack, Queen and King portraits; use card and broom icons for the live score counters.
 - Keep the opening call visible as a rank card on the table, with live current-deal card points and sweep counts at each team's side.
 - Simplify playing cards to one large suit symbol and one bold top-left rank with a small suit beneath it.
 - Increase corner readability, deepen suit colours, and show face-card building values beneath a restrained royal emblem.

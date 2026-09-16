@@ -83,9 +83,11 @@ void main() {
     await tester.tap(find.byKey(const Key('resume')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('score-card-points-0')), findsNothing);
-    expect(find.text('Us · ${game.score(0).cardPoints} pts · 2 sweeps'),
-        findsOneWidget);
-    expect(find.text('Opp · 0 pts · 1 sweeps'), findsOneWidget);
+    String live(String key) => tester.widget<Text>(find.byKey(Key(key))).data!;
+    expect(live('live-points-0'), '${game.score(0).cardPoints}');
+    expect(live('live-points-1'), '0');
+    expect(live('live-sweeps-0'), '2');
+    expect(live('live-sweeps-1'), '1');
     await tester.tap(find.byKey(const Key('scores')));
     await tester.pumpAndSettle();
     String label(String key) => tester.widget<Text>(find.byKey(Key(key))).data!;
@@ -106,8 +108,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 2200));
     await tester.pump();
-    expect(find.textContaining('Us · ${game.score(0).cardPoints + 10} pts'),
-        findsOneWidget);
+    expect(live('live-points-0'), '${game.score(0).cardPoints + 10}');
     await tester.tap(find.byKey(const Key('scores')));
     await tester.pumpAndSettle();
     expect(label('score-card-points-0'),

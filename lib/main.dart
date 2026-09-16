@@ -497,7 +497,7 @@ class _SweepScreenState extends State<SweepScreen>
                         child: const Text('New game')),
                     const SizedBox(height: 16),
                     const Text(
-                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.4',
+                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.5',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))

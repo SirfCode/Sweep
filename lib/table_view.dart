@@ -119,12 +119,24 @@ extension _TableView on _SweepScreenState {
           color: ink.withValues(alpha: .85),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(
-          '${team == 0 ? 'Us' : 'Opp'} · ${g.score(team).cardPoints} pts · ${g.sweeps[team].length} sweeps',
-          style: TextStyle(
-              color: team == 0 ? gold : cream,
-              fontSize: 13,
-              fontWeight: FontWeight.w600),
+        child: Tooltip(
+          message:
+              '${team == 0 ? 'Your team' : 'Opposition'}: ${g.score(team).cardPoints} card points, ${g.sweeps[team].length} sweeps. Tap for scores.',
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.style_outlined, color: cream, size: 19),
+            const SizedBox(width: 5),
+            Text('${g.score(team).cardPoints}',
+                key: Key('live-points-$team'),
+                style: const TextStyle(
+                    color: cream, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 12),
+            const Icon(Icons.cleaning_services, color: gold, size: 19),
+            const SizedBox(width: 5),
+            Text('${g.sweeps[team].length}',
+                key: Key('live-sweeps-$team'),
+                style: const TextStyle(
+                    color: gold, fontSize: 16, fontWeight: FontWeight.bold)),
+          ]),
         ),
       ),
     );
@@ -221,11 +233,12 @@ extension _TableView on _SweepScreenState {
                             top: 6,
                             left: 8,
                             child: Tooltip(
-                              message: 'Opening call: ${g.calledValue}',
+                              message:
+                                  '${seatNames[(g.dealer + 1) % 4]} called ${g.calledValue}',
                               child: Container(
                                 key: const Key('table-call'),
                                 width: 40,
-                                height: 52,
+                                height: 70,
                                 decoration: BoxDecoration(
                                   color: cream,
                                   borderRadius: BorderRadius.circular(6),
@@ -245,19 +258,37 @@ extension _TableView on _SweepScreenState {
                                             fontFamily: 'Georgia',
                                             fontSize: 25,
                                             fontWeight: FontWeight.bold)),
+                                    Text(seatNames[(g.dealer + 1) % 4],
+                                        maxLines: 1,
+                                        key: const Key('call-player'),
+                                        style: const TextStyle(
+                                            color: ink,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600)),
                                   ],
                                 ),
                               ),
                             ),
                           ),
+                        Positioned(top: 32, right: 8, child: _liveDealScore(1)),
                         Positioned(
-                            top: 32,
-                            right: 8,
-                            child: _liveDealScore(1)),
+                            bottom: 4, left: 8, child: _liveDealScore(0)),
                         Positioned(
                             bottom: 4,
-                            left: 8,
-                            child: _liveDealScore(0)),
+                            right: 8,
+                            child: Tooltip(
+                                message: 'Your remaining cards',
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.style_outlined,
+                                          color: cream, size: 12),
+                                      const SizedBox(width: 3),
+                                      Text('${g.hands[0].length}',
+                                          key: const Key('cards-left-0'),
+                                          style: const TextStyle(
+                                              color: cream, fontSize: 11)),
+                                    ]))),
                         Positioned(
                             top: top,
                             bottom: bottom,
@@ -289,32 +320,6 @@ extension _TableView on _SweepScreenState {
                                                                 key: Key(
                                                                     'hidden-$i'))))
                                                   else ...[
-                                                    if (g.loose.isEmpty &&
-                                                        g.houses.isEmpty)
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(12),
-                                                          child:
-                                                              Column(children: [
-                                                            Icon(
-                                                                Icons
-                                                                    .auto_awesome,
-                                                                size: 30,
-                                                                color: gold
-                                                                    .withValues(
-                                                                        alpha:
-                                                                            .45)),
-                                                            const SizedBox(
-                                                                height: 8),
-                                                            const Text(
-                                                                'A clear table',
-                                                                style: TextStyle(
-                                                                    color: Colors
-                                                                        .white38,
-                                                                    fontFamily:
-                                                                        'Georgia'))
-                                                          ])),
                                                     Wrap(
                                                         alignment: WrapAlignment
                                                             .center,
