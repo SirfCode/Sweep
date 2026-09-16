@@ -110,6 +110,8 @@ Every building move must include the one card played from your hand as part of t
 
 For a new house, combine the played hand card with loose table cards to total a legal house value, and retain a matching-rank card.
 
+A matching-rank hand card can also form its own combination alongside matching loose table cards or combinations to create a new pakka house. For example, with two 10s in hand and a loose 10 on the table, play one 10 to build a pakka house of 10 (two separate groups of 10), retaining the other 10 for capture. This is an alternative to capturing the loose 10.
+
 When building or contributing at a value, include all available matching table cards and non-overlapping combinations, including matching houses. Do not deliberately leave a separate matching combination behind. Where combinations overlap, cards cannot be reused.
 
 You may add a matching-rank hand card directly to a house instead of capturing it, provided the commitment requirement is satisfied. For example, with two 10s, add one to a house of 10 and retain the other. If your teammate is already committed to that house, you may add your only 10 under their commitment.

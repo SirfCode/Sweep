@@ -10,8 +10,43 @@ import 'package:sweep/game/engine.dart';
 import 'package:sweep/game/bot.dart';
 import 'package:sweep/main.dart';
 import 'package:sweep/table_art.dart';
+import 'fixtures.dart';
+
+SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
+    jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
+  testWidgets('loose ten offers Capture and Build 10 and creates a pakka house',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = twoTensGame();
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('hand-48')));
+    await tester.pumpAndSettle();
+    expect(find.text('Capture'), findsWidgets);
+    expect(find.text('Build 10'), findsOneWidget);
+    final options =
+        game.position.legalMoves().where((m) => m.card == 48).toList();
+    final index = options.indexWhere((m) => m.kind == MoveKind.build);
+    await tester.tap(find.byKey(Key('move-$index')));
+    await tester.pumpAndSettle();
+    expect(saved(prefs).plays, 39);
+    await tester.tap(find.byKey(const Key('confirm-move')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump();
+    final result = saved(prefs);
+    expect(result.houses.singleWhere((h) => h.value == 10).pakka, isTrue);
+    expect(result.hands[0], [0, 22]);
+    result.validate();
+    await tester.pumpWidget(const SizedBox());
+  });
   setUpAll(() async {
     if (!const bool.fromEnvironment('UPDATE_SCREENSHOTS') ||
         !Platform.isWindows) {
@@ -53,9 +88,6 @@ void main() {
     await tester.pumpAndSettle();
     return prefs;
   }
-
-  SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
-      jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
   Future<void> select(WidgetTester tester, SharedPreferences prefs) async {
     final card = saved(prefs).position.legalMoves().first.card;

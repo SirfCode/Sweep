@@ -158,9 +158,12 @@ class Position {
             if (houses[i].value == value) i
         ];
         if (rank <= value) {
-          // A played matching card can be added directly to an existing house.
+          // A matching hand card is a complete group by itself. It can join
+          // an existing house or matching loose groups to start a pakka house.
           final bases = rank == value
-              ? (matches.isNotEmpty ? [<int>[]] : <List<int>>[])
+              ? (matches.isNotEmpty || at(value).subsets.isNotEmpty
+                  ? [<int>[]]
+                  : <List<int>>[])
               : _Combinations(loose, value - rank).cardSubsets;
           for (final base in bases) {
             for (final extra in at(value).maximal(excluding: base)) {
