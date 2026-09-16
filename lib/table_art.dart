@@ -258,78 +258,69 @@ class PlayerSeat extends StatelessWidget {
       required this.dealer,
       this.compact = false});
   @override
-  Widget build(BuildContext context) => Semantics(
-      label:
-          '${seatNames[seat]}, ${seat == 2 ? 'partner' : seat == 0 ? 'you' : 'opponent'}, $count cards${active ? ', active player' : ''}',
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color:
-                        active ? gold : seatColors[seat].withValues(alpha: .45),
-                    width: 2),
-                boxShadow: active
-                    ? [
-                        BoxShadow(
-                            color: gold.withValues(alpha: .3), blurRadius: 16)
-                      ]
-                    : []),
-            child: CircleAvatar(
-                radius: compact ? 15 : 21,
-                backgroundColor: seatColors[seat].withValues(alpha: .18),
-                child: Text(seatNames[seat][0],
+  Widget build(BuildContext context) {
+    final description =
+        '${seatNames[seat]}${seat == 2 ? ', partner' : ', opponent'}, $count cards${dealer ? ', dealer' : ''}${active ? ', active player' : ''}';
+    return Semantics(
+        label: description,
+        child: Tooltip(
+            message: description,
+            child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: seat == 2 ? 88 : 44,
+                height: seat == 2 ? 30 : 64,
+                decoration: BoxDecoration(
+                    color: active ? gold : ink,
+                    border: Border.all(
+                        color: active
+                            ? gold
+                            : seatColors[seat].withValues(alpha: .6)),
+                    borderRadius: seat == 2
+                        ? const BorderRadius.vertical(
+                            bottom: Radius.circular(44))
+                        : seat == 3
+                            ? const BorderRadius.horizontal(
+                                right: Radius.circular(40))
+                            : const BorderRadius.horizontal(
+                                left: Radius.circular(40)),
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                                color: gold.withValues(alpha: .35),
+                                blurRadius: 12)
+                          ]
+                        : []),
+                alignment: Alignment.center,
+                child: Text(seatNames[seat],
                     style: TextStyle(
-                        color: seatColors[seat],
-                        fontFamily: 'Georgia',
-                        fontSize: compact ? 17 : 23)))),
-        const SizedBox(height: 3),
-        FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text(seatNames[seat],
-                  style: TextStyle(
-                      color: active ? gold : cream,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12)),
-              if (dealer)
-                Container(
-                    margin: const EdgeInsets.only(left: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: const BoxDecoration(
-                        color: cream, shape: BoxShape.circle),
-                    child: const Text('D',
-                        style: TextStyle(color: ink, fontSize: 9)))
-            ])),
-        if (!compact && seat == 2)
-          const Text('PARTNER',
-              style: TextStyle(
-                  color: Colors.white54, fontSize: 8, letterSpacing: 1.5)),
-        if (seat != 0 && count > 0)
-          Padding(
-              padding: const EdgeInsets.only(top: 5),
-              child: SizedBox(
-                  width: 52,
-                  height: compact ? 15 : 23,
-                  child: Stack(children: [
-                    for (var i = 0; i < math.min(count, 5); i++)
-                      Positioned(
-                          left: i * 7,
-                          child:
-                              CardBack(width: 19, height: compact ? 15 : 23)),
-                    Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            color: ink,
-                            child: Text('$count',
-                                style: const TextStyle(
-                                    fontSize: 9, color: cream))))
-                  ]))),
-      ]));
+                        fontSize: 12,
+                        color: active ? ink : cream,
+                        fontWeight: FontWeight.w600)))));
+  }
+}
+
+/// Size the whole card together, keeping the existing face artwork unchanged.
+class TableCard extends StatelessWidget {
+  final int card;
+  final double scale;
+  final bool highlighted;
+  final VoidCallback? onTap;
+  const TableCard(
+      {super.key,
+      required this.card,
+      this.scale = 1.3,
+      this.highlighted = false,
+      this.onTap});
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      width: 72 * scale,
+      height: 102 * scale,
+      child: FittedBox(
+          child: CardFace(
+              card: card,
+              large: true,
+              highlighted: highlighted,
+              onTap: onTap)));
 }
 
 class HouseStack extends StatelessWidget {
@@ -350,8 +341,8 @@ class HouseStack extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Container(
-              width: 106,
-              height: 108,
+              width: 134,
+              height: 139,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
@@ -362,10 +353,10 @@ class HouseStack extends StatelessWidget {
               child: Stack(children: [
                 for (var i = 0; i < math.min(3, house.cards.length); i++)
                   Positioned(
-                      left: 5 + i * 15,
+                      left: 5 + i * 19,
                       top: 8 + i * 3,
-                      child:
-                          IgnorePointer(child: CardFace(card: house.cards[i]))),
+                      child: IgnorePointer(
+                          child: CardFace(card: house.cards[i], large: true))),
                 Positioned(
                     right: 0,
                     top: 0,
@@ -412,7 +403,7 @@ class FeltSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(70),
+          borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(
               colors: [Color(0xFF92633F), Color(0xFF372017), Color(0xFF785135)],
               begin: Alignment.topLeft,
@@ -421,15 +412,15 @@ class FeltSurface extends StatelessWidget {
             BoxShadow(
                 color: Colors.black54, blurRadius: 20, offset: Offset(0, 8))
           ]),
-      padding: const EdgeInsets.all(9),
+      padding: const EdgeInsets.all(3),
       child: Container(
           decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(61),
+              borderRadius: BorderRadius.circular(21),
               border: Border.all(color: gold.withValues(alpha: .45)),
               gradient: const RadialGradient(
                   colors: [Color(0xFF286350), Color(0xFF123D32)], radius: .9)),
           child: ClipRRect(
-              borderRadius: BorderRadius.circular(60),
+              borderRadius: BorderRadius.circular(20),
               child: CustomPaint(painter: const FeltGrain(), child: child))));
 }
 

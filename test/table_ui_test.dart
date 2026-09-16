@@ -82,6 +82,9 @@ void main() {
     await tester.pumpWidget(SweepApp(preferences: prefs));
     await tester.tap(find.byKey(const Key('resume')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('score-card-points-0')), findsNothing);
+    await tester.tap(find.byKey(const Key('scores')));
+    await tester.pumpAndSettle();
     String label(String key) => tester.widget<Text>(find.byKey(Key(key))).data!;
     expect(label('score-game-total-0'), 'Game 145');
     expect(label('score-game-total-1'), 'Game 155');
@@ -92,12 +95,16 @@ void main() {
     expect(label('score-sweeps-1'), '1 sweeps');
     expect(label('score-sweep-points-0'), contains('+75 sweep pts'));
     expect(label('score-sweep-points-1'), contains('need 20 card pts'));
+    await tester.tap(find.byKey(const Key('close-scores')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('hand-48')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('confirm-move')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 2200));
     await tester.pump();
+    await tester.tap(find.byKey(const Key('scores')));
+    await tester.pumpAndSettle();
     expect(label('score-card-points-0'),
         '${game.score(0).cardPoints + 10} card pts');
     expect(label('score-game-total-0'), 'Game 145');
@@ -250,7 +257,7 @@ void main() {
     testWidgets('table and visual selection fit ${entry.key}', (tester) async {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final prefs = await launch(tester, entry.value, dealt: true);
-      expect(find.byType(PlayerSeat), findsNWidgets(4));
+      expect(find.byType(PlayerSeat), findsNWidgets(3));
       await capture(tester, 'v0.2-${entry.key}');
       await select(tester, prefs);
       expect(find.byKey(const Key('confirm-move')), findsOneWidget);
@@ -272,7 +279,9 @@ void main() {
     await tester.tap(find.byKey(const Key('confirm-move')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.byTooltip('Deal log'));
+    await tester.tap(find.byTooltip('Game menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deal log'));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 10));
     expect(saved(prefs).plays, 0);
@@ -293,9 +302,9 @@ void main() {
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final prefs = await launch(tester, const Size(1000, 800));
-    await tester.tap(find.byTooltip('Turn speed'));
+    await tester.tap(find.byTooltip('Game menu'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<double>, 'Slow'));
+    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<String>, 'Slow'));
     await tester.pumpAndSettle();
     expect(prefs.getDouble('sweep.pace'), 1.6);
     await select(tester, prefs);

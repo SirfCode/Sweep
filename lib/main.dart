@@ -88,6 +88,7 @@ class _SweepScreenState extends State<SweepScreen>
   int? _selectedCard;
   Move? _preview;
   bool _paused = false;
+  bool _menuWasPaused = false;
   double _pace = 1;
   String? _lastAction;
   void _update(VoidCallback action) => setState(action);
@@ -161,6 +162,15 @@ class _SweepScreenState extends State<SweepScreen>
     } else {
       _scheduleBot();
     }
+  }
+
+  void _openMenu() {
+    _menuWasPaused = _paused;
+    if (!_paused) _togglePause();
+  }
+
+  void _closeMenu() {
+    if (!_menuWasPaused && _paused) _togglePause();
   }
 
   @override
@@ -357,8 +367,8 @@ class _SweepScreenState extends State<SweepScreen>
       },
       child: Scaffold(
           appBar: AppBar(
-              title: Text(
-                  _atHome ? 'SWEEP' : 'SWEEP  /  Deal ${_game!.dealNumber}',
+              toolbarHeight: 48,
+              title: Text('SWEEP',
                   style: const TextStyle(fontSize: 18, letterSpacing: 2)),
               leading: _atHome
                   ? null
@@ -374,36 +384,55 @@ class _SweepScreenState extends State<SweepScreen>
                       onPressed: _togglePause,
                       tooltip: _paused ? 'Resume play' : 'Pause play',
                       icon: Icon(_paused ? Icons.play_arrow : Icons.pause)),
-                  PopupMenuButton<double>(
-                      tooltip: 'Turn speed',
-                      initialValue: _pace,
-                      onSelected: (value) {
-                        setState(() => _pace = value);
-                        widget.preferences.setDouble('sweep.pace', value);
-                        _scheduleBot();
-                      },
-                      itemBuilder: (_) => [
-                            for (final entry in {
-                              1.6: 'Slow',
-                              1.0: 'Normal',
-                              .5: 'Fast'
-                            }.entries)
-                              CheckedPopupMenuItem(
-                                  value: entry.key,
-                                  checked: _pace == entry.key,
-                                  child: Text(entry.value))
-                          ],
-                      icon: const Icon(Icons.speed)),
                 ],
                 if (!_atHome)
                   IconButton(
-                      onPressed: _history,
-                      tooltip: 'Deal log',
-                      icon: const Icon(Icons.history)),
-                IconButton(
-                    onPressed: _rules,
-                    tooltip: 'Rulebook',
-                    icon: const Icon(Icons.menu_book_outlined))
+                      key: const Key('scores'),
+                      tooltip: 'Scores',
+                      onPressed: _showScores,
+                      icon: const Icon(Icons.scoreboard_outlined)),
+                PopupMenuButton<String>(
+                    tooltip: 'Game menu',
+                    onOpened: _openMenu,
+                    onCanceled: _closeMenu,
+                    icon: const Icon(Icons.more_horiz),
+                    onSelected: (value) {
+                      _closeMenu();
+                      if (value == 'rules') {
+                        _rules();
+                      } else if (value == 'history') {
+                        _history();
+                      } else {
+                        setState(() => _pace =
+                            {'slow': 1.6, 'normal': 1.0, 'fast': .5}[value]!);
+                        widget.preferences.setDouble('sweep.pace', _pace);
+                        _scheduleBot();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                          const PopupMenuItem<String>(
+                              enabled: false, child: Text('Turn speed')),
+                          for (final entry in {
+                            'slow': 'Slow',
+                            'normal': 'Normal',
+                            'fast': 'Fast'
+                          }.entries)
+                            CheckedPopupMenuItem<String>(
+                                value: entry.key,
+                                checked: _pace ==
+                                    {
+                                      'slow': 1.6,
+                                      'normal': 1.0,
+                                      'fast': .5
+                                    }[entry.key],
+                                child: Text(entry.value)),
+                          const PopupMenuDivider(),
+                          if (!_atHome)
+                            const PopupMenuItem(
+                                value: 'history', child: Text('Deal log')),
+                          const PopupMenuItem(
+                              value: 'rules', child: Text('Rulebook')),
+                        ]),
               ]),
           body: SafeArea(
               child: Column(children: [
@@ -468,7 +497,7 @@ class _SweepScreenState extends State<SweepScreen>
                         child: const Text('New game')),
                     const SizedBox(height: 16),
                     const Text(
-                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.3',
+                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.4',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))

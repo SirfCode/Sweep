@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Expand the table nearly edge to edge, thin the wooden border, and replace player panels with compact half-circle edge markers.
+- Enlarge table cards, houses and the animated played card; retain existing card artwork.
+- Move deal and game scores into a pausing popup; consolidate speed, rules and history into a pausing menu.
+- Remove the human avatar and use a compact action strip only while choosing a move.
+
 ## 0.3.0
 
 - Keep the completed table visible for five seconds after the final move resolves before opening deal scores.
