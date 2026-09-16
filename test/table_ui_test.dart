@@ -17,6 +17,54 @@ SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
     jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
+  testWidgets('final move stays visible for five seconds before scores',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = SweepGame.newGame(seed: 42, dealer: 3);
+    game.phase = Phase.playing;
+    game.turn = 0;
+    game.plays = 47;
+    game.deck = [];
+    game.hands = [
+      [48],
+      [],
+      [],
+      []
+    ];
+    game.loose = [9];
+    game.houses = [];
+    game.captured = [
+      [
+        for (var c = 0; c < 52; c++)
+          if (c != 48 && c != 9) c
+      ],
+      []
+    ];
+    game.validate();
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('hand-48')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-move')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump();
+    expect(saved(prefs).phase, Phase.results);
+    final totals = saved(prefs).totals.toList();
+    expect(find.text('Scores in a moment…'), findsOneWidget);
+    expect(find.text('Captured card points'), findsNothing);
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.text('Captured card points'), findsNothing);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Captured card points'), findsNWidgets(2));
+    expect(saved(prefs).totals, totals);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
       'both teams show live deal points and sweeps separately from game totals',
       (tester) async {

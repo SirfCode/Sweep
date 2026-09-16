@@ -84,6 +84,7 @@ class _SweepScreenState extends State<SweepScreen>
   Future<void> _saveQueue = Future.value();
   late final AnimationController _motion;
   Move? _moving;
+  bool _showingFinalMove = false;
   int? _selectedCard;
   Move? _preview;
   bool _paused = false;
@@ -95,7 +96,11 @@ class _SweepScreenState extends State<SweepScreen>
       milliseconds: (widget.botDelay.inMilliseconds * factor * _pace).round());
 
   bool get _canPlay =>
-      !_paused && _error == null && _moving == null && _game!.turn == 0;
+      !_paused &&
+      _error == null &&
+      _moving == null &&
+      _game!.phase != Phase.results &&
+      _game!.turn == 0;
 
   Future<void> _overlay(Future<void> Function() open) async {
     final wasPaused = _paused;
@@ -142,6 +147,7 @@ class _SweepScreenState extends State<SweepScreen>
           : '${seatNames[g.turn]} · ${_moveLabel(move)}';
       g.play(move);
       _moving = null;
+      _showingFinalMove = g.phase == Phase.results;
     });
   }
 
@@ -219,6 +225,18 @@ class _SweepScreenState extends State<SweepScreen>
   void _scheduleBot() {
     _botTimer?.cancel();
     final g = _game;
+    if (mounted &&
+        _foreground &&
+        !_atHome &&
+        !_paused &&
+        _error == null &&
+        _showingFinalMove &&
+        g?.phase == Phase.results) {
+      _botTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted) setState(() => _showingFinalMove = false);
+      });
+      return;
+    }
     if (!mounted ||
         !_foreground ||
         _atHome ||
@@ -290,6 +308,7 @@ class _SweepScreenState extends State<SweepScreen>
     _botTimer?.cancel();
     _motion.stop();
     _moving = null;
+    _showingFinalMove = false;
     _selectedCard = null;
     _preview = null;
     _save();
@@ -400,7 +419,7 @@ class _SweepScreenState extends State<SweepScreen>
             Expanded(
                 child: _atHome
                     ? _homeBody()
-                    : _game!.phase == Phase.results
+                    : _game!.phase == Phase.results && !_showingFinalMove
                         ? _results()
                         : _table())
           ]))));

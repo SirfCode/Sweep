@@ -2,6 +2,7 @@
 
 ## 0.2.0
 
+- Keep the completed table visible for five seconds after the final move resolves before opening deal scores.
 - Show both teams' current-deal card points, sweep counts, and pending sweep bonuses alongside completed-deal game totals.
 - Hold the revealed opening table for 30 seconds before a bot's first move, independently of turn speed. Human opening turns wait for confirmation.
 - Fix missing Build option when a matching hand card and loose table card or combination can form a new pakka house, while retaining a matching card.

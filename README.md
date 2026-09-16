@@ -16,6 +16,8 @@ Turns animate the played card onto the table, pause, then gather the affected ca
 
 After a bot calls 9–13 and the table is revealed, the game gives you 30 seconds to study the cards before the opening move. This viewing pause is independent of the speed setting and restarts when resuming an opening bot turn. Your own opening turn has no time limit: play continues only after you confirm your move.
 
+After the final move resolves, the completed table and live scores remain visible for five seconds before the deal-score screen opens. The completed deal is saved immediately during this pause.
+
 Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` receive an own-hand-only `Position`, without the deck or other players' cards. Legal moves are shared by bots and the human interface. Overlapping capture choices remain selectable; outcomes that capture the same cards share one representative grouping because houses are indivisible.
 
 Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.

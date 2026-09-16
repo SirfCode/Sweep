@@ -130,24 +130,28 @@ extension _TableView on _SweepScreenState {
         final side = wide ? 90.0 : 58.0;
         final top = tight ? 74.0 : 124.0;
         final bottom = tight ? 55.0 : 69.0;
-        final status = _paused
-            ? 'Paused — take your time'
-            : _moving != null
-                ? '${seatNames[g.turn]} · ${_moveLabel(_moving!)}'
-                : g.phase == Phase.opening && g.turn != 0
-                    ? '${seatNames[g.turn]} called ${g.calledValue} · ${widget.openingDelay.inSeconds}s to study the table'
-                    : (human && g.phase != Phase.call && _lastAction != null)
-                        ? 'Your turn · $_lastAction'
-                        : _lastAction ??
-                            (g.phase == Phase.call
-                                ? (g.turn == 0
-                                    ? 'Choose your opening call'
-                                    : '${seatNames[g.turn]} is choosing a call')
-                                : human
-                                    ? (g.phase == Phase.opening
-                                        ? 'Opening call: ${g.calledValue} · Choose a card'
-                                        : 'Your turn · Choose a card')
-                                    : '${seatNames[g.turn]} is thinking…');
+        final status = _showingFinalMove
+            ? 'Deal complete · $_lastAction'
+            : _paused
+                ? 'Paused — take your time'
+                : _moving != null
+                    ? '${seatNames[g.turn]} · ${_moveLabel(_moving!)}'
+                    : g.phase == Phase.opening && g.turn != 0
+                        ? '${seatNames[g.turn]} called ${g.calledValue} · ${widget.openingDelay.inSeconds}s to study the table'
+                        : (human &&
+                                g.phase != Phase.call &&
+                                _lastAction != null)
+                            ? 'Your turn · $_lastAction'
+                            : _lastAction ??
+                                (g.phase == Phase.call
+                                    ? (g.turn == 0
+                                        ? 'Choose your opening call'
+                                        : '${seatNames[g.turn]} is choosing a call')
+                                    : human
+                                        ? (g.phase == Phase.opening
+                                            ? 'Opening call: ${g.calledValue} · Choose a card'
+                                            : 'Your turn · Choose a card')
+                                        : '${seatNames[g.turn]} is thinking…');
         final sections = <Widget>[
           if (!compact || !wide)
             Padding(
@@ -480,8 +484,11 @@ extension _TableView on _SweepScreenState {
       key: const Key('hand'),
       height: tight ? 96 : 128,
       child: hand.isEmpty
-          ? const Center(
-              child: Text('Waiting for the deal',
+          ? Center(
+              child: Text(
+                  _showingFinalMove
+                      ? 'Scores in a moment…'
+                      : 'Waiting for the deal',
                   style: TextStyle(color: Colors.white54, fontSize: 12)))
           : LayoutBuilder(builder: (context, area) {
               final cardWidth = tight ? 54.0 : 72.0;
