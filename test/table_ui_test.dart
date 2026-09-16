@@ -16,6 +16,51 @@ SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
     jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
+  testWidgets('bot reveals the call then waits 30 seconds even on Fast',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = SweepGame.newGame(seed: 42, dealer: 0);
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson()), 'sweep.pace': .5});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pump();
+    expect(saved(prefs).phase, Phase.opening);
+    expect(find.byKey(const Key('hidden-0')), findsNothing);
+    expect(find.textContaining('30s to study the table'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 29));
+    expect(saved(prefs).plays, 0);
+    expect(find.textContaining('30s to study the table'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining('30s to study the table'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pump();
+    expect(saved(prefs).plays, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('human opening waits beyond 30 seconds for confirmation',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = SweepGame.newGame(seed: 42, dealer: 3);
+    game.call(game.position.calls.first);
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(minutes: 1));
+    expect(saved(prefs).phase, Phase.opening);
+    expect(saved(prefs).turn, 0);
+    expect(saved(prefs).plays, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('loose ten offers Capture and Build 10 and creates a pakka house',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 900));

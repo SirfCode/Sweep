@@ -2,6 +2,7 @@
 
 ## 0.2.0
 
+- Hold the revealed opening table for 30 seconds before a bot's first move, independently of turn speed. Human opening turns wait for confirmation.
 - Fix missing Build option when a matching hand card and loose table card or combination can form a new pakka house, while retaining a matching card.
 - Traditional felt table, wooden rim, four player seats and active-turn indicators.
 - Drawn playing cards, fanned hand, visual house stacks and ownership markers.

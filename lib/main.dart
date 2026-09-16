@@ -21,10 +21,12 @@ const saveKey = 'sweep.game.v1';
 class SweepApp extends StatelessWidget {
   final SharedPreferences preferences;
   final Duration botDelay;
+  final Duration openingDelay;
   const SweepApp(
       {super.key,
       required this.preferences,
-      this.botDelay = const Duration(milliseconds: 1500)});
+      this.botDelay = const Duration(milliseconds: 1500),
+      this.openingDelay = const Duration(seconds: 30)});
   @override
   Widget build(BuildContext context) => MaterialApp(
       title: 'Sweep',
@@ -52,14 +54,21 @@ class SweepApp extends StatelessWidget {
                   minimumSize: const Size(48, 48),
                   backgroundColor: gold,
                   foregroundColor: ink))),
-      home: SweepScreen(preferences: preferences, botDelay: botDelay));
+      home: SweepScreen(
+          preferences: preferences,
+          botDelay: botDelay,
+          openingDelay: openingDelay));
 }
 
 class SweepScreen extends StatefulWidget {
   final SharedPreferences preferences;
   final Duration botDelay;
+  final Duration openingDelay;
   const SweepScreen(
-      {super.key, required this.preferences, required this.botDelay});
+      {super.key,
+      required this.preferences,
+      required this.botDelay,
+      required this.openingDelay});
   @override
   State<SweepScreen> createState() => _SweepScreenState();
 }
@@ -221,7 +230,10 @@ class _SweepScreenState extends State<SweepScreen>
         g.phase == Phase.results) {
       return;
     }
-    _botTimer = Timer(_duration(1), () {
+    // Keep the revealed opening table visible before a bot acts. Speed settings
+    // affect subsequent turns, not this time reserved for understanding the deal.
+    final delay = g.phase == Phase.opening ? widget.openingDelay : _duration(1);
+    _botTimer = Timer(delay, () {
       if (!mounted || _atHome || !_foreground) return;
       final bot = SweepBot(g.seed + g.dealNumber * 53 + g.plays);
       if (g.phase == Phase.call) {

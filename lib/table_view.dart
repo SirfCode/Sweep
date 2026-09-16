@@ -108,18 +108,20 @@ extension _TableView on _SweepScreenState {
             ? 'Paused — take your time'
             : _moving != null
                 ? '${seatNames[g.turn]} · ${_moveLabel(_moving!)}'
-                : (human && g.phase != Phase.call && _lastAction != null)
-                    ? 'Your turn · $_lastAction'
-                    : _lastAction ??
-                        (g.phase == Phase.call
-                            ? (g.turn == 0
-                                ? 'Choose your opening call'
-                                : '${seatNames[g.turn]} is choosing a call')
-                            : human
-                                ? (g.phase == Phase.opening
-                                    ? 'Opening call: ${g.calledValue} · Choose a card'
-                                    : 'Your turn · Choose a card')
-                                : '${seatNames[g.turn]} is thinking…');
+                : g.phase == Phase.opening && g.turn != 0
+                    ? '${seatNames[g.turn]} called ${g.calledValue} · ${widget.openingDelay.inSeconds}s to study the table'
+                    : (human && g.phase != Phase.call && _lastAction != null)
+                        ? 'Your turn · $_lastAction'
+                        : _lastAction ??
+                            (g.phase == Phase.call
+                                ? (g.turn == 0
+                                    ? 'Choose your opening call'
+                                    : '${seatNames[g.turn]} is choosing a call')
+                                : human
+                                    ? (g.phase == Phase.opening
+                                        ? 'Opening call: ${g.calledValue} · Choose a card'
+                                        : 'Your turn · Choose a card')
+                                    : '${seatNames[g.turn]} is thinking…');
         final sections = <Widget>[
           if (!compact)
             Padding(
