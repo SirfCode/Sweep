@@ -27,6 +27,14 @@ flutter run -d emulator-5556
 
 See DEVELOPMENT_SETUP.md for emulator startup commands. The isolated ADB port avoids a conflicting older ADB service on this computer. Build an Android debug APK with `flutter build apk --debug`; it is written to `build/app/outputs/flutter-apk/app-debug.apk`. The application ID and launcher icon remain development defaults and must be finalized before publishing.
 
+## Run in a web browser
+
+From the project directory, run `flutter run -d chrome --web-port 8080` (or use `-d edge`). In Android Studio, select Chrome in the device dropdown and run `lib/main.dart`. For a stable save location in the IDE too, set Additional run args to `--web-port 8080` in the Flutter run configuration.
+
+To use an existing browser window, run `flutter run -d web-server --web-hostname localhost --web-port 8080`, then open `http://localhost:8080`. Keep the terminal running; press Ctrl+C to stop. Browser saves belong to that browser profile and origin, so keep the same hostname and port when resuming. They are separate from Android saves.
+
+`flutter build web` creates the files in `build/web` for later website hosting. Adding web support does not publish the game online.
+
 ## Remaining polish
 
 The bots use an initial tactical policy, not advanced search or difficulty levels. The app still needs human playtesting, a guided tutorial, richer animation and audio, accessibility review, final artwork, iPhone packaging, and release preparation. This is a playable development build, not a store release.
