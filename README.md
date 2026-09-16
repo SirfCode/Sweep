@@ -8,6 +8,8 @@ Playable offline partnership Sweep: one human, a bot partner (Ari), and two oppo
 
 Players sit around a green felt table with a wooden rim: you at the bottom, Ari opposite, Mira on the right, and Dev on the left. Playing cards use drawn suit pips and mirrored rank corners. Your whole hand fits in a shallow fan. Houses appear as card stacks with value badges, coloured ownership markers, and a lock for pakka houses.
 
+Each team's scoreboard separates the cumulative **Game** total from **THIS DEAL**: captured card points, sweep count, and provisional sweep bonus. These update after each completed move. Sweep bonuses require at least 20 captured card points and are finalized when the deal ends.
+
 Tap a hand card, then a highlighted table target or a visual move option. The gold outline previews the complete legal move; press Capture, Build, Raise, or Discard to play it. Cancel selection leaves the deal unchanged. The shared table scrolls when crowded. Tap a house without a selection to inspect its component groups and commitments.
 
 Turns animate the played card onto the table, pause, then gather the affected cards into a capture or house. Normal bot turns take about 3.6 seconds; the speed menu offers Slow (about 5.8 seconds) and Fast (about 1.8 seconds), remembered between sessions. Speed changes apply to subsequent moves. Pause freezes the current animation. Opening the rulebook, deal log, or house details also pauses play. Returning home during an animation retains the last completed turn; Resume continues from that saved position. Existing 0.1 saves remain compatible.

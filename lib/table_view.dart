@@ -39,34 +39,60 @@ extension _TableView on _SweepScreenState {
     _update(() => _preview = options[(current + 1) % options.length]);
   }
 
-  Widget _scores() {
+  Widget _scores({bool stacked = false}) {
     final g = _game!;
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+    final panels = <Widget>[
       for (var team = 0; team < 2; team++)
-        Expanded(
-            child: Tooltip(
-                message:
-                    '${g.score(team).cardPoints} captured card points • ${g.score(team).earnedSweepPoints} pending sweep points',
-                child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: .18),
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Row(children: [
-                      Expanded(
-                          child: Text(team == 0 ? 'You & Ari' : 'Mira & Dev',
-                              style: TextStyle(
-                                  color: team == 0 ? gold : cream,
-                                  fontSize: 12))),
-                      Text('${g.totals[team]}',
-                          style: const TextStyle(
-                              fontFamily: 'Georgia',
-                              fontSize: 20,
-                              color: cream))
-                    ])))),
-    ]);
+        Container(
+            margin: const EdgeInsets.all(4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .18),
+                borderRadius: BorderRadius.circular(8)),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(
+                    child: Text(team == 0 ? 'You & Ari' : 'Mira & Dev',
+                        style: TextStyle(
+                            color: team == 0 ? gold : cream, fontSize: 12))),
+                Text('Game ${g.totals[team]}',
+                    key: Key('score-game-total-$team'),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 11)),
+              ]),
+              const SizedBox(height: 6),
+              const Text('THIS DEAL',
+                  style: TextStyle(
+                      color: Colors.white54, fontSize: 9, letterSpacing: 1)),
+              const SizedBox(height: 3),
+              Wrap(spacing: 12, runSpacing: 3, children: [
+                Text('${g.score(team).cardPoints} card pts',
+                    key: Key('score-card-points-$team'),
+                    style: const TextStyle(
+                        color: cream,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                Text('${g.sweeps[team].length} sweeps',
+                    key: Key('score-sweeps-$team'),
+                    style: const TextStyle(color: gold, fontSize: 12)),
+              ]),
+              const SizedBox(height: 3),
+              Tooltip(
+                  message:
+                      'Sweep bonuses count at the end of the deal only if your team collects at least 20 card points.',
+                  child: Text(
+                      '+${g.score(team).earnedSweepPoints} sweep pts${g.score(team).cardPoints < 20 ? ' (need 20 card pts)' : ' (pending)'}',
+                      key: Key('score-sweep-points-$team'),
+                      style: const TextStyle(
+                          color: Colors.white60, fontSize: 10))),
+            ])),
+    ];
+    return stacked
+        ? Column(children: panels)
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [for (final panel in panels) Expanded(child: panel)]);
   }
 
   Widget _table() => LayoutBuilder(builder: (context, constraints) {
@@ -123,7 +149,7 @@ extension _TableView on _SweepScreenState {
                                         : 'Your turn · Choose a card')
                                     : '${seatNames[g.turn]} is thinking…');
         final sections = <Widget>[
-          if (!compact)
+          if (!compact || !wide)
             Padding(
                 padding: const EdgeInsets.only(bottom: 9),
                 child: ConstrainedBox(
@@ -135,13 +161,6 @@ extension _TableView on _SweepScreenState {
                       constraints: const BoxConstraints(maxWidth: 1100),
                       child: FeltSurface(
                           child: Stack(children: [
-                        if (compact)
-                          Positioned(
-                              left: 25,
-                              top: 8,
-                              child: Text('${g.totals[0]} : ${g.totals[1]}',
-                                  style: const TextStyle(
-                                      color: gold, fontSize: 12))),
                         Positioned(
                             top: compact ? 2 : 10,
                             left: 0,
@@ -358,8 +377,10 @@ extension _TableView on _SweepScreenState {
                         SizedBox(
                             width: 260,
                             child: SingleChildScrollView(
-                                child: Column(
-                                    children: sections.skip(1).toList())))
+                                child: Column(children: [
+                              _scores(),
+                              ...sections.skip(1)
+                            ])))
                       ])
                     : Column(children: sections)));
       });

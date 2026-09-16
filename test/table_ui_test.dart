@@ -11,11 +11,50 @@ import 'package:sweep/game/bot.dart';
 import 'package:sweep/main.dart';
 import 'package:sweep/table_art.dart';
 import 'fixtures.dart';
+import 'package:sweep/game/scoring.dart';
 
 SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
     jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
+  testWidgets(
+      'both teams show live deal points and sweeps separately from game totals',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = twoTensGame();
+    game.totals = [145, 155];
+    game.sweeps = [
+      [SweepTiming.opening, SweepTiming.intermediate],
+      [SweepTiming.intermediate]
+    ];
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pumpAndSettle();
+    String label(String key) => tester.widget<Text>(find.byKey(Key(key))).data!;
+    expect(label('score-game-total-0'), 'Game 145');
+    expect(label('score-game-total-1'), 'Game 155');
+    expect(
+        label('score-card-points-0'), '${game.score(0).cardPoints} card pts');
+    expect(label('score-card-points-1'), '0 card pts');
+    expect(label('score-sweeps-0'), '2 sweeps');
+    expect(label('score-sweeps-1'), '1 sweeps');
+    expect(label('score-sweep-points-0'), contains('+75 sweep pts'));
+    expect(label('score-sweep-points-1'), contains('need 20 card pts'));
+    await tester.tap(find.byKey(const Key('hand-48')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-move')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump();
+    expect(label('score-card-points-0'),
+        '${game.score(0).cardPoints + 10} card pts');
+    expect(label('score-game-total-0'), 'Game 145');
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('bot reveals the call then waits 30 seconds even on Fast',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 800));
