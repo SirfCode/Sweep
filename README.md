@@ -2,15 +2,21 @@
 
 An offline Flutter card game planned for Android first, then iPhone. One human and a bot partner play against two bots. SWEEP_RULES.md is the authoritative rules reference; MOBILE_GAME_PLAN.md describes the proposed interface and milestones.
 
-## Current state
+## Version 0.2 — traditional table
 
 Playable offline partnership Sweep: one human, a bot partner (Ari), and two opponent bots (Mira and Dev). Includes opening calls, all four move types, ordinary and pakka houses, commitments, sweeps, deal scoring, cumulative games, dealer rotation, and save/resume. The rulebook is available inside the app.
 
-Tap a hand card to see legal moves. Select a move to preview it, then confirm. Scroll the hand horizontally to see all cards, and scroll the shared table when it fills. Tap a house for its component groups and commitments. The Home button pauses the game; Resume continues from the saved turn.
+Players sit around a green felt table with a wooden rim: you at the bottom, Ari opposite, Mira on the right, and Dev on the left. Playing cards use drawn suit pips and mirrored rank corners. Your whole hand fits in a shallow fan. Houses appear as card stacks with value badges, coloured ownership markers, and a lock for pakka houses.
+
+Tap a hand card, then a highlighted table target or a visual move option. The gold outline previews the complete legal move; press Capture, Build, Raise, or Discard to play it. Cancel selection leaves the deal unchanged. The shared table scrolls when crowded. Tap a house without a selection to inspect its component groups and commitments.
+
+Turns animate the played card onto the table, pause, then gather the affected cards into a capture or house. Normal bot turns take about 3.6 seconds; the speed menu offers Slow (about 5.8 seconds) and Fast (about 1.8 seconds), remembered between sessions. Speed changes apply to subsequent moves. Pause freezes the current animation. Opening the rulebook, deal log, or house details also pauses play. Returning home during an animation retains the last completed turn; Resume continues from that saved position. Existing 0.1 saves remain compatible.
 
 Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` receive an own-hand-only `Position`, without the deck or other players' cards. Legal moves are shared by bots and the human interface. Overlapping capture choices remain selectable; outcomes that capture the same cards share one representative grouping because houses are indivisible.
 
-Validation: 24 passing tests, including 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through player UI controls, results resume without duplicate scoring, and small landscape layout. `flutter analyze` reports no issues. The Android debug APK was built, installed, and exercised on the emulator: house-raising preview/confirmation, bot responses, exact saved-state preservation across a force-stop/relaunch, and portrait/landscape rendering. Screenshots are in `artifacts/sweep-table.png`, `artifacts/sweep-preview.png`, and `artifacts/sweep-landscape.png`.
+Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.
+
+Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. Version 0.2 UI work is on `codex/0.2-table-ui`; the package version is `0.2.0+2`.
 
 ## Run on the configured emulator
 

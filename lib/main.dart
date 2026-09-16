@@ -1,20 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'game/bot.dart';
 import 'game/engine.dart';
+import 'table_art.dart';
+export 'table_art.dart' show CardFace, CardBack;
+part 'table_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(SweepApp(preferences: await SharedPreferences.getInstance()));
 }
 
-const gold = Color(0xFFE8C889);
-const ink = Color(0xFF102D27);
-const felt = Color(0xFF194C40);
-const cream = Color(0xFFF7F0DE);
 const saveKey = 'sweep.game.v1';
 
 class SweepApp extends StatelessWidget {
@@ -23,11 +24,18 @@ class SweepApp extends StatelessWidget {
   const SweepApp(
       {super.key,
       required this.preferences,
-      this.botDelay = const Duration(milliseconds: 1100)});
+      this.botDelay = const Duration(milliseconds: 1500)});
   @override
   Widget build(BuildContext context) => MaterialApp(
       title: 'Sweep',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.invertedStylus,
+        PointerDeviceKind.trackpad,
+      }),
       theme: ThemeData(
           useMaterial3: true,
           brightness: Brightness.dark,
@@ -56,7 +64,8 @@ class SweepScreen extends StatefulWidget {
   State<SweepScreen> createState() => _SweepScreenState();
 }
 
-class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
+class _SweepScreenState extends State<SweepScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   SweepGame? _game;
   bool _atHome = true;
   bool _foreground = true;
@@ -64,10 +73,87 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
   String? _saveError;
   Timer? _botTimer;
   Future<void> _saveQueue = Future.value();
+  late final AnimationController _motion;
+  Move? _moving;
+  int? _selectedCard;
+  Move? _preview;
+  bool _paused = false;
+  double _pace = 1;
+  String? _lastAction;
+  void _update(VoidCallback action) => setState(action);
+
+  Duration _duration(double factor) => Duration(
+      milliseconds: (widget.botDelay.inMilliseconds * factor * _pace).round());
+
+  bool get _canPlay =>
+      !_paused && _error == null && _moving == null && _game!.turn == 0;
+
+  Future<void> _overlay(Future<void> Function() open) async {
+    final wasPaused = _paused;
+    _botTimer?.cancel();
+    _motion.stop();
+    setState(() => _paused = true);
+    try {
+      await open();
+    } finally {
+      if (mounted) {
+        setState(() => _paused = wasPaused);
+        if (_moving != null && !_paused && _foreground && !_atHome) {
+          _motion.forward();
+        } else {
+          _scheduleBot();
+        }
+      }
+    }
+  }
+
+  void _play(Move move) {
+    if (_paused || _moving != null) return;
+    _botTimer?.cancel();
+    setState(() {
+      _moving = move;
+      _selectedCard = null;
+      _preview = null;
+      _lastAction = null;
+    });
+    _motion.duration = _duration(1.4);
+    _motion.forward(from: 0);
+  }
+
+  void _finishMove(AnimationStatus status) {
+    if (status != AnimationStatus.completed || _moving == null) return;
+    final move = _moving!;
+    final g = _game!;
+    final clear = move.kind == MoveKind.capture &&
+        move.selectedLoose.length == g.loose.length &&
+        move.houseIndexes.length == g.houses.length;
+    _act(() {
+      _lastAction = clear
+          ? '${seatNames[g.turn]} · Sweep!${g.plays == 47 ? '' : ' +${g.plays == 0 ? 25 : 50} pending'}'
+          : '${seatNames[g.turn]} · ${_moveLabel(move)}';
+      g.play(move);
+      _moving = null;
+    });
+  }
+
+  void _togglePause() {
+    setState(() => _paused = !_paused);
+    if (_paused) {
+      _botTimer?.cancel();
+      _motion.stop();
+    } else if (_moving != null) {
+      _motion.forward();
+    } else {
+      _scheduleBot();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _pace = widget.preferences.getDouble('sweep.pace') ?? 1;
+    _motion = AnimationController(vsync: this)..addStatusListener(_finishMove);
     final saved = widget.preferences.getString(saveKey);
     if (saved != null) {
       try {
@@ -82,6 +168,7 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _botTimer?.cancel();
+    _motion.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -90,9 +177,14 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
     if (_foreground) {
-      _scheduleBot();
+      if (_moving != null && !_paused && !_atHome) {
+        _motion.forward();
+      } else {
+        _scheduleBot();
+      }
     } else {
       _botTimer?.cancel();
+      _motion.stop();
       _save();
     }
   }
@@ -121,22 +213,25 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
     if (!mounted ||
         !_foreground ||
         _atHome ||
+        _paused ||
+        _moving != null ||
         _error != null ||
         g == null ||
         g.turn == 0 ||
         g.phase == Phase.results) {
       return;
     }
-    _botTimer = Timer(widget.botDelay, () {
+    _botTimer = Timer(_duration(1), () {
       if (!mounted || _atHome || !_foreground) return;
       final bot = SweepBot(g.seed + g.dealNumber * 53 + g.plays);
-      _act(() {
-        if (g.phase == Phase.call) {
+      if (g.phase == Phase.call) {
+        _act(() {
           g.call(bot.chooseCall(g.position));
-        } else {
-          g.play(bot.chooseMove(g.position));
-        }
-      });
+          _lastAction = '${seatNames[g.turn]} calls ${g.calledValue}';
+        });
+      } else {
+        _play(bot.chooseMove(g.position));
+      }
     });
   }
 
@@ -172,11 +267,19 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
       _game = SweepGame.newGame();
       _atHome = false;
       _error = null;
+      _paused = false;
+      _selectedCard = null;
+      _preview = null;
+      _lastAction = null;
     });
   }
 
   void _home() {
     _botTimer?.cancel();
+    _motion.stop();
+    _moving = null;
+    _selectedCard = null;
+    _preview = null;
     _save();
     setState(() => _atHome = true);
   }
@@ -184,7 +287,7 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
   Future<void> _rules() async {
     final rules = await rootBundle.loadString('SWEEP_RULES.md');
     if (!mounted) return;
-    showDialog<void>(
+    await _overlay(() => showDialog<void>(
         context: context,
         builder: (context) => Dialog.fullscreen(
             child: Scaffold(
@@ -196,10 +299,10 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
                 body: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
                     child: SelectableText(rules,
-                        style: const TextStyle(fontSize: 16, height: 1.5))))));
+                        style: const TextStyle(fontSize: 16, height: 1.5)))))));
   }
 
-  void _history() => showModalBottomSheet<void>(
+  Future<void> _history() => _overlay(() => showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (context) => SafeArea(
@@ -214,7 +317,7 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
                         children: _game!.history.reversed
                             .map((s) => ListTile(title: Text(s)))
                             .toList()))
-              ]))));
+              ])))));
   @override
   Widget build(BuildContext context) => PopScope(
       canPop: _atHome,
@@ -234,6 +337,33 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
                       onPressed: _home,
                       icon: const Icon(Icons.home_outlined)),
               actions: [
+                if (!_atHome && _game!.phase != Phase.results) ...[
+                  IconButton(
+                      key: const Key('pause'),
+                      onPressed: _togglePause,
+                      tooltip: _paused ? 'Resume play' : 'Pause play',
+                      icon: Icon(_paused ? Icons.play_arrow : Icons.pause)),
+                  PopupMenuButton<double>(
+                      tooltip: 'Turn speed',
+                      initialValue: _pace,
+                      onSelected: (value) {
+                        setState(() => _pace = value);
+                        widget.preferences.setDouble('sweep.pace', value);
+                        _scheduleBot();
+                      },
+                      itemBuilder: (_) => [
+                            for (final entry in {
+                              1.6: 'Slow',
+                              1.0: 'Normal',
+                              .5: 'Fast'
+                            }.entries)
+                              CheckedPopupMenuItem(
+                                  value: entry.key,
+                                  checked: _pace == entry.key,
+                                  child: Text(entry.value))
+                          ],
+                      icon: const Icon(Icons.speed)),
+                ],
                 if (!_atHome)
                   IconButton(
                       onPressed: _history,
@@ -307,387 +437,11 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
                         child: const Text('New game')),
                     const SizedBox(height: 16),
                     const Text(
-                        'Tap a card, preview a move, then confirm.\nYour progress saves after every turn.',
+                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.2',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))
                   ]))));
-
-  Widget _scores() {
-    final g = _game!;
-    return Row(children: [
-      for (var team = 0; team < 2; team++)
-        Expanded(
-            child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: team == 0
-                        ? const Color(0xFF295C4D)
-                        : Colors.white.withValues(alpha: .05),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                          '${team == 0 ? 'YOU + ARI' : 'MIRA + DEV'}     ${g.totals[team]}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, color: cream)),
-                      const SizedBox(height: 4),
-                      Text(
-                          '${g.score(team).cardPoints} card pts · +${g.score(team).earnedSweepPoints} pending',
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.white70))
-                    ])))
-    ]);
-  }
-
-  Widget _seat(int seat) {
-    final g = _game!;
-    final active = g.turn == seat;
-    return Expanded(
-        child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            margin: const EdgeInsets.all(4),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            decoration: BoxDecoration(
-                color: active ? gold : Colors.white.withValues(alpha: .04),
-                borderRadius: BorderRadius.circular(12)),
-            child: Column(children: [
-              Text(
-                  '${active ? '● ' : ''}${seatNames[seat]}${g.dealer == seat ? '  D' : ''}',
-                  style: TextStyle(
-                      color: active ? ink : cream,
-                      fontWeight: FontWeight.bold)),
-              Text(
-                  '${seat == 2 ? 'Partner' : 'Opponent'} · ${g.hands[seat].length} cards',
-                  style: TextStyle(
-                      fontSize: 10, color: active ? ink : Colors.white60))
-            ])));
-  }
-
-  Widget _table() {
-    final g = _game!;
-    final human = g.turn == 0;
-    final hand = g.hands[0].toList()
-      ..sort((a, b) {
-        final rank = rankOf(a).compareTo(rankOf(b));
-        return rank != 0 ? rank : a.compareTo(b);
-      });
-    final legal = human ? g.position.legalMoves() : <Move>[];
-    final sections = <Widget>[
-      Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8), child: _scores()),
-      Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(children: [_seat(3), _seat(2), _seat(1)])),
-      Expanded(
-          child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-              decoration: BoxDecoration(
-                  color: felt,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: gold.withValues(alpha: .2))),
-              child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          const Expanded(
-                              child: Text('THE TABLE',
-                                  style: TextStyle(
-                                      letterSpacing: 2,
-                                      fontSize: 11,
-                                      color: gold))),
-                          Text(
-                              g.phase == Phase.call
-                                  ? 'Hidden until call'
-                                  : '${g.plays}/48 plays',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.white60))
-                        ]),
-                        const SizedBox(height: 16),
-                        if (g.phase == Phase.call)
-                          Center(
-                              child: Wrap(
-                                  spacing: 8,
-                                  children: List.generate(
-                                      4, (_) => const CardBack())))
-                        else ...[
-                          if (g.loose.isEmpty && g.houses.isEmpty)
-                            const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 24),
-                                child: Text(
-                                    'The table is clear.\nNext player places a loose card.',
-                                    style: TextStyle(
-                                        height: 1.6, color: Colors.white70))),
-                          Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: g.loose
-                                  .map((c) => CardFace(card: c))
-                                  .toList()),
-                          if (g.houses.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: g.houses.map(_house).toList())
-                          ]
-                        ],
-                        const SizedBox(height: 20),
-                        if (g.history.isNotEmpty)
-                          Text(g.history.last,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                  height: 1.5))
-                      ])))),
-      Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                  g.phase == Phase.call
-                      ? human
-                          ? 'Your call • choose a rank you hold'
-                          : '${seatNames[g.turn]} is choosing the opening call…'
-                      : human
-                          ? g.phase == Phase.opening
-                              ? 'Your opening move • called ${g.calledValue}'
-                              : 'Your turn • tap a card to see its moves'
-                          : '${seatNames[g.turn]} is thinking…',
-                  style: const TextStyle(
-                      color: gold, fontWeight: FontWeight.w600)))),
-      if (g.phase == Phase.call && human)
-        Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Wrap(
-                spacing: 8,
-                children: g.position.calls
-                    .map((v) => FilledButton(
-                        key: Key('call-$v'),
-                        onPressed: () => _act(() => g.call(v)),
-                        child: Text('Call $v')))
-                    .toList())),
-      SizedBox(
-          height: 108,
-          child: hand.isEmpty
-              ? const Center(
-                  child: Text('Your cards arrive after the opening call.',
-                      style: TextStyle(color: Colors.white60)))
-              : ListView.separated(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: hand.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final card = hand[index];
-                    final available =
-                        legal.where((m) => m.card == card).toList();
-                    return CardFace(
-                        key: Key('hand-$card'),
-                        card: card,
-                        large: true,
-                        highlighted: human && available.isNotEmpty,
-                        onTap: human && g.phase != Phase.call
-                            ? () => _chooseCard(card, available)
-                            : null);
-                  })),
-      Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-              'YOU${g.dealer == 0 ? ' · Dealer' : ''} · ${hand.length} cards · Play passes to your right → Mira',
-              style: const TextStyle(fontSize: 10, color: Colors.white60)))
-    ];
-    return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth > 650 && constraints.maxHeight < 500) {
-        return Row(children: [
-          Expanded(child: Column(children: sections.take(3).toList())),
-          SizedBox(
-              width: 280,
-              child: SingleChildScrollView(
-                  child: Column(children: sections.skip(3).toList()))),
-        ]);
-      }
-      return Column(children: sections);
-    });
-  }
-
-  Widget _house(House h) => InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-                  title: Text(
-                      '${h.pakka ? 'Pakka' : 'Ordinary'} house · ${h.value}'),
-                  content: SingleChildScrollView(
-                      child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                        for (final group in h.groups)
-                          Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Text(
-                                  '${group.map(cardName).join(' + ')} = ${h.value}')),
-                        Text(
-                            'Committed: ${h.owners.map((s) => seatNames[s]).join(', ')}'),
-                        const SizedBox(height: 12),
-                        Text(h.pakka
-                            ? 'Only a matching card can capture this house. It cannot be raised.'
-                            : 'Capture with a matching card, or raise with one hand card while meeting the new commitment.')
-                      ])),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'))
-                  ])),
-      child: Container(
-          width: 146,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-              color: ink,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: gold)),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${h.value}  ${h.pakka ? 'PAKKA' : 'HOUSE'}',
-                style:
-                    const TextStyle(color: gold, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text('${h.cards.length} cards · ${pointsOf(h.cards)} pts',
-                style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(h.owners.map((s) => seatNames[s]).join(' + '),
-                style: const TextStyle(fontSize: 11, color: Colors.white60))
-          ])));
-
-  Future<void> _chooseCard(int card, List<Move> moves) async {
-    if (moves.isEmpty) {
-      final committed = _game!.houses
-          .any((h) => h.owners.contains(0) && h.value == rankOf(card));
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(committed
-              ? 'Keep ${cardName(card)} for your house commitment. Capture the house or wait for its value to change.'
-              : 'This card has no legal move. The opening must follow the called value.')));
-      return;
-    }
-    final g = _game!;
-    final p = g.position;
-    final chosen = await showModalBottomSheet<Move>(
-        context: context,
-        isScrollControlled: true,
-        builder: (context) => SafeArea(
-            child: SizedBox(
-                height: MediaQuery.sizeOf(context).height * .68,
-                child: Column(children: [
-                  Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Text(
-                          '${cardName(card)} · ${moves.length} legal ${moves.length == 1 ? 'move' : 'moves'}',
-                          style: const TextStyle(fontSize: 22))),
-                  const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                          'Choose a move to preview. Nothing is played yet.',
-                          style: TextStyle(color: Colors.white60))),
-                  const SizedBox(height: 10),
-                  Expanded(
-                      child: ListView.separated(
-                          itemCount: moves.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final m = moves[index];
-                            final cards = p.affectedCards(m);
-                            return ListTile(
-                                key: Key('move-$index'),
-                                leading: Icon(
-                                    switch (m.kind) {
-                                      MoveKind.capture =>
-                                        Icons.download_rounded,
-                                      MoveKind.build =>
-                                        Icons.home_work_outlined,
-                                      MoveKind.raise => Icons.upgrade,
-                                      MoveKind.discard => Icons.add_card
-                                    },
-                                    color: gold),
-                                title: Text(m.title),
-                                subtitle: Text(cards.isEmpty
-                                    ? 'Leave this card face up.'
-                                    : cards.map(cardName).join('  ')),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () => Navigator.pop(context, m));
-                          }))
-                ]))));
-    if (chosen == null || !mounted) return;
-    final m = chosen;
-    final affected = p.affectedCards(m);
-    final remains = p.loose.where((c) => !m.selectedLoose.contains(c)).toList();
-    final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-                title: Text(m.title),
-                content: SingleChildScrollView(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text('Play ${cardName(m.card)}'),
-                      const SizedBox(height: 12),
-                      if (affected.isNotEmpty) ...[
-                        const Text('Table cards included',
-                            style: TextStyle(color: gold)),
-                        const SizedBox(height: 8),
-                        Wrap(
-                            spacing: 5,
-                            runSpacing: 5,
-                            children: affected
-                                .map((c) => Chip(label: Text(cardName(c))))
-                                .toList()),
-                        const SizedBox(height: 12)
-                      ],
-                      if (m.kind == MoveKind.capture)
-                        Text('Your team takes ${pointsOf([
-                              m.card,
-                              ...affected
-                            ])} card points.'),
-                      if (m.kind == MoveKind.build ||
-                          m.kind == MoveKind.raise) ...[
-                        Text('Result: house of ${m.value}'),
-                        Text(
-                            'Committed: ${p.resultingOwners(m).map((s) => seatNames[s]).join(', ')}')
-                      ],
-                      const SizedBox(height: 12),
-                      Text(
-                          'Loose cards left: ${remains.isEmpty ? 'none' : remains.map(cardName).join(' ')}${m.kind == MoveKind.discard ? ' + ${cardName(m.card)}' : ''}'),
-                      if (m.kind == MoveKind.capture &&
-                          remains.isEmpty &&
-                          m.houseIndexes.length == p.houses.length)
-                        const Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Text(
-                                'This clears the table. Sweep bonuses require 20 card points at the end of the deal.',
-                                style: TextStyle(color: gold)))
-                    ])),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel')),
-                  FilledButton(
-                      key: const Key('confirm-move'),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Confirm move'))
-                ]));
-    if (confirm == true && mounted && !_atHome && identical(g, _game)) {
-      _act(() => g.play(m));
-    }
-  }
 
   Widget _results() {
     final g = _game!;
@@ -747,7 +501,10 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
                         const SizedBox(height: 18),
                         FilledButton(
                             key: const Key('next-deal'),
-                            onPressed: () => _act(g.continueGame),
+                            onPressed: () => _act(() {
+                                  _lastAction = null;
+                                  g.continueGame();
+                                }),
                             child: const Text('Next deal'))
                       ] else
                         FilledButton(
@@ -766,77 +523,4 @@ class _SweepScreenState extends State<SweepScreen> with WidgetsBindingObserver {
         Expanded(child: Text(title)),
         Text('$points', style: const TextStyle(fontWeight: FontWeight.bold))
       ]));
-}
-
-class CardFace extends StatelessWidget {
-  final int card;
-  final bool large;
-  final bool highlighted;
-  final VoidCallback? onTap;
-  const CardFace(
-      {super.key,
-      required this.card,
-      this.large = false,
-      this.highlighted = false,
-      this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        card ~/ 13 == 1 || card ~/ 13 == 2 ? const Color(0xFFAC3734) : ink;
-    return Semantics(
-        label: '${cardName(card)}, ${cardOf(card).points} card points',
-        button: onTap != null,
-        child: Material(
-            color: cream,
-            borderRadius: BorderRadius.circular(9),
-            child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(9),
-                child: Container(
-                    width: large ? 62 : 50,
-                    height: large ? 86 : 72,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                            color: highlighted ? gold : Colors.transparent,
-                            width: 3)),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(cardName(card),
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                      color: color,
-                                      fontSize: large ? 22 : 18,
-                                      fontWeight: FontWeight.w800))),
-                          const Spacer(),
-                          Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                  cardOf(card).points > 0
-                                      ? '${cardOf(card).points} pt'
-                                      : '—',
-                                  style: TextStyle(
-                                      color: color.withValues(alpha: .7),
-                                      fontSize: 10)))
-                        ])))));
-  }
-}
-
-class CardBack extends StatelessWidget {
-  const CardBack({super.key});
-  @override
-  Widget build(BuildContext context) => Container(
-      width: 50,
-      height: 72,
-      decoration: BoxDecoration(
-          color: ink,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: gold)),
-      child: const Center(
-          child: Icon(Icons.diamond_outlined, color: gold, size: 24)));
 }

@@ -37,14 +37,7 @@ void main() {
         final legal = g.position.legalMoves()
           ..sort((a, b) => rankOf(a.card).compareTo(rankOf(b.card)));
         final target = find.byKey(Key('hand-${legal.first.card}'));
-        final hand = find.byType(ListView).last;
-        await tester.drag(hand, const Offset(1500, 0));
-        await tester.pumpAndSettle();
-        await tester.scrollUntilVisible(target, 100,
-            scrollable:
-                find.descendant(of: hand, matching: find.byType(Scrollable)),
-            maxScrolls: 15);
-        await tester.tap(target);
+        await tester.tapAt(tester.getTopLeft(target) + const Offset(9, 12));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const Key('move-0')));
         await tester.pumpAndSettle();
@@ -81,7 +74,7 @@ void main() {
     await tester.tap(find.byKey(const Key('resume')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.byType(CardBack), findsNWidgets(4));
+    expect(find.byKey(const Key('hidden-0')), findsOneWidget);
     await tester.tap(find.byKey(const Key('home')));
     await tester.pumpAndSettle();
     final before = prefs.getString(saveKey);
