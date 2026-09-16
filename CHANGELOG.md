@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Keep the opening call visible as a rank card on the table, with live current-deal card points and sweep counts at each team's side.
+- Simplify playing cards to one large suit symbol and one bold top-left rank with a small suit beneath it.
+- Increase corner readability, deepen suit colours, and show face-card building values beneath a restrained royal emblem.
+
 ## 0.4.0
 
 - Expand the table nearly edge to edge, thin the wooden border, and replace player panels with compact half-circle edge markers.

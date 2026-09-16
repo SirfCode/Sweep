@@ -108,6 +108,28 @@ extension _TableView on _SweepScreenState {
             children: [for (final panel in panels) Expanded(child: panel)]);
   }
 
+  Widget _liveDealScore(int team) {
+    final g = _game!;
+    return GestureDetector(
+      onTap: _showScores,
+      child: Container(
+        key: Key('live-deal-score-$team'),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: ink.withValues(alpha: .85),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '${team == 0 ? 'Us' : 'Opp'} · ${g.score(team).cardPoints} pts · ${g.sweeps[team].length} sweeps',
+          style: TextStyle(
+              color: team == 0 ? gold : cream,
+              fontSize: 13,
+              fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
   Widget _table() => LayoutBuilder(builder: (context, constraints) {
         final compact = constraints.maxHeight < 480;
         final tight = constraints.maxHeight < 650;
@@ -141,8 +163,8 @@ extension _TableView on _SweepScreenState {
             dealer: g.dealer == s,
             compact: tight);
         final side = 46.0;
-        final top = 34.0;
-        final bottom = 4.0;
+        final top = 60.0;
+        final bottom = 30.0;
         final cardScale = compact
             ? 1.05
             : wide
@@ -194,6 +216,48 @@ extension _TableView on _SweepScreenState {
                             bottom: 0,
                             width: 44,
                             child: Center(child: seat(1))),
+                        if (g.calledValue != null)
+                          Positioned(
+                            top: 6,
+                            left: 8,
+                            child: Tooltip(
+                              message: 'Opening call: ${g.calledValue}',
+                              child: Container(
+                                key: const Key('table-call'),
+                                width: 40,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: cream,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: gold),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text('CALL',
+                                        style: TextStyle(
+                                            color: ink,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold)),
+                                    Text(rankName(g.calledValue!),
+                                        style: const TextStyle(
+                                            color: ink,
+                                            fontFamily: 'Georgia',
+                                            fontSize: 25,
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                            top: 32,
+                            right: 8,
+                            child: _liveDealScore(1)),
+                        Positioned(
+                            bottom: 4,
+                            left: 8,
+                            child: _liveDealScore(0)),
                         Positioned(
                             top: top,
                             bottom: bottom,

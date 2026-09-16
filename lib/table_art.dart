@@ -75,127 +75,107 @@ class CardFace extends StatelessWidget {
       this.large = false,
       this.highlighted = false,
       this.onTap});
+
   @override
   Widget build(BuildContext context) {
     final suit = card ~/ 13;
     final rank = rankOf(card);
     final color = suit == 1 || suit == 2
-        ? const Color(0xFFB33035)
-        : const Color(0xFF172C2B);
+        ? const Color(0xFFAD2035)
+        : const Color(0xFF18221F);
     Widget symbol(double size) => SizedBox.square(
         dimension: size, child: CustomPaint(painter: SuitPainter(suit, color)));
-    Widget corner() => Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(rankName(rank),
-              style: TextStyle(
-                  color: color,
-                  fontFamily: 'Georgia',
-                  fontSize: large ? 19 : 15,
-                  fontWeight: FontWeight.bold,
-                  height: 1)),
-          const SizedBox(height: 2),
-          symbol(large ? 12 : 9),
-        ]);
-    final pips = <Offset>[];
-    if (rank <= 10) {
-      if (rank == 1) {
-        pips.add(const Offset(.5, .5));
-      } else if (rank <= 3) {
-        pips.addAll([const Offset(.5, .16), const Offset(.5, .84)]);
-        if (rank == 3) pips.add(const Offset(.5, .5));
-      } else {
-        final rows = rank >= 8
-            ? 4
-            : rank >= 6
-                ? 3
-                : 2;
-        for (var i = 0; i < rows; i++) {
-          final y = .14 + i * .72 / (rows - 1);
-          pips.addAll([Offset(.24, y), Offset(.76, y)]);
-        }
-        if (rank.isOdd) pips.add(const Offset(.5, .5));
-        if (rank == 10) {
-          pips.addAll([const Offset(.5, .32), const Offset(.5, .68)]);
-        }
-      }
-    }
     return Semantics(
-        label: '${cardName(card)}, ${cardOf(card).points} card points',
-        button: onTap != null,
-        child: Tooltip(
-            message: cardName(card),
-            child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                    onTap: onTap,
-                    borderRadius: BorderRadius.circular(7),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: large ? 72 : 54,
-                      height: large ? 102 : 78,
-                      decoration: BoxDecoration(
-                          color: const Color(0xFFFFFCF3),
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(
-                              color:
-                                  highlighted ? gold : const Color(0xFFD5CFC0),
-                              width: highlighted ? 3 : 1),
-                          boxShadow: [
-                            BoxShadow(
-                                color: highlighted
-                                    ? gold.withValues(alpha: .35)
-                                    : Colors.black38,
-                                blurRadius: highlighted ? 12 : 4,
-                                offset: const Offset(0, 3))
-                          ]),
-                      child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Stack(children: [
-                            Positioned(top: 0, left: 0, child: corner()),
-                            Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: RotatedBox(
-                                    quarterTurns: 2, child: corner())),
-                            Positioned.fill(
-                                left: large ? 16 : 12,
-                                right: large ? 16 : 12,
-                                top: 15,
-                                bottom: 15,
-                                child: rank <= 10
-                                    ? LayoutBuilder(
-                                        builder: (context, c) =>
-                                            Stack(children: [
-                                              for (final pip in pips)
-                                                Positioned(
-                                                    left: pip.dx * c.maxWidth -
-                                                        (rank == 1 ? 11 : 5),
-                                                    top: pip.dy * c.maxHeight -
-                                                        (rank == 1 ? 13 : 6),
-                                                    child: Transform.rotate(
-                                                        angle: pip.dy > .5
-                                                            ? math.pi
-                                                            : 0,
-                                                        child: symbol(rank == 1
-                                                            ? 23
-                                                            : 11))),
-                                            ]))
-                                    : DecoratedBox(
-                                        decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: color.withValues(
-                                                    alpha: .25)),
-                                            color: gold.withValues(alpha: .15)),
-                                        child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.workspace_premium,
-                                                  color: color,
-                                                  size: large ? 24 : 16),
-                                              symbol(large ? 20 : 12)
-                                            ]))),
-                          ])),
-                    )))));
+      label: '${cardName(card)}, ${cardOf(card).points} card points',
+      button: onTap != null,
+      child: Tooltip(
+        message: cardName(card),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(7),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: large ? 72 : 54,
+              height: large ? 102 : 78,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFCF3),
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                  color: highlighted ? gold : const Color(0xFF77796D),
+                  width: highlighted ? 3 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: highlighted
+                        ? gold.withValues(alpha: .4)
+                        : Colors.black38,
+                    blurRadius: highlighted ? 12 : 4,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            rankName(rank),
+                            style: TextStyle(
+                              color: color,
+                              fontFamily: 'Georgia',
+                              fontSize: large ? 23 : 18,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                              letterSpacing: -1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          symbol(large ? 14 : 11),
+                        ],
+                      ),
+                    ),
+                    Positioned.fill(
+                      left: large ? 19 : 15,
+                      top: large ? 24 : 19,
+                      child: Center(
+                        child: rank <= 10
+                            ? symbol(large ? 36 : 26)
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.workspace_premium,
+                                      color: const Color(0xFF94702E),
+                                      size: large ? 19 : 13),
+                                  symbol(large ? 25 : 18),
+                                  Text(
+                                    '$rank',
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: large ? 14 : 11,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
