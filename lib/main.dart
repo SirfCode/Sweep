@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/strings.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +20,7 @@ Future<void> main() async {
 
 const saveKey = 'sweep.game.v1';
 
-class SweepApp extends StatelessWidget {
+class SweepApp extends StatefulWidget {
   final SharedPreferences preferences;
   final Duration botDelay;
   final Duration openingDelay;
@@ -26,38 +28,61 @@ class SweepApp extends StatelessWidget {
       {super.key,
       required this.preferences,
       this.botDelay = const Duration(milliseconds: 1500),
-      this.openingDelay = const Duration(seconds: 30)});
+      this.openingDelay = const Duration(seconds: 20)});
   @override
-  Widget build(BuildContext context) => MaterialApp(
-      title: 'Sweep',
-      debugShowCheckedModeBanner: false,
-      scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.invertedStylus,
-        PointerDeviceKind.trackpad,
-      }),
-      theme: ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: ink,
-          colorScheme: ColorScheme.fromSeed(
-              seedColor: gold,
+  State<SweepApp> createState() => _AppState();
+}
+
+class _AppState extends State<SweepApp> {
+  String? _language;
+  @override
+  void initState() {
+    super.initState();
+    _language = widget.preferences.getString('seep.language');
+  }
+
+  void _changeLanguage(String language) {
+    setState(() => _language = language);
+    widget.preferences.setString('seep.language', language);
+  }
+
+  @override
+  Widget build(BuildContext context) => LanguageScope(
+      change: _changeLanguage,
+      child: MaterialApp(
+          title: 'Seep',
+          locale: _language == null ? null : Locale(_language!),
+          supportedLocales: const [Locale('en'), Locale('hi')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: MaterialScrollBehavior().copyWith(dragDevices: {
+            PointerDeviceKind.touch,
+            PointerDeviceKind.mouse,
+            PointerDeviceKind.stylus,
+            PointerDeviceKind.invertedStylus,
+            PointerDeviceKind.trackpad,
+          }),
+          theme: ThemeData(
+              fontFamilyFallback: const ['NotoDevanagari'],
+              useMaterial3: true,
               brightness: Brightness.dark,
-              primary: gold,
-              surface: ink),
-          appBarTheme:
-              const AppBarTheme(backgroundColor: ink, foregroundColor: cream),
-          filledButtonTheme: FilledButtonThemeData(
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  backgroundColor: gold,
-                  foregroundColor: ink))),
-      home: SweepScreen(
-          preferences: preferences,
-          botDelay: botDelay,
-          openingDelay: openingDelay));
+              scaffoldBackgroundColor: ink,
+              colorScheme: ColorScheme.fromSeed(
+                  seedColor: gold,
+                  brightness: Brightness.dark,
+                  primary: gold,
+                  surface: ink),
+              appBarTheme:
+                  AppBarTheme(backgroundColor: ink, foregroundColor: cream),
+              filledButtonTheme: FilledButtonThemeData(
+                  style: FilledButton.styleFrom(
+                      minimumSize: Size(48, 48),
+                      backgroundColor: gold,
+                      foregroundColor: ink))),
+          home: SweepScreen(
+              preferences: widget.preferences,
+              botDelay: widget.botDelay,
+              openingDelay: widget.openingDelay)));
 }
 
 class SweepScreen extends StatefulWidget {
@@ -76,6 +101,27 @@ class SweepScreen extends StatefulWidget {
 class _SweepScreenState extends State<SweepScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   SweepGame? _game;
+  String textFor(String key, [Map<String, Object?> args = const {}]) =>
+      tr(context, key, args);
+
+  Future<void> _languageDialog() => _overlay(() => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => SimpleDialog(
+          title: const Text('Language / भाषा'),
+          children: [
+            for (final entry in {'en': 'English', 'hi': 'हिन्दी'}.entries)
+              SimpleDialogOption(
+                key: Key('language-${entry.key}'),
+                onPressed: () {
+                  LanguageScope.of(context).change(entry.key);
+                  setState(() => _lastAction = null);
+                  Navigator.pop(dialogContext);
+                },
+                child: Text(entry.value),
+              )
+          ],
+        ),
+      ));
   bool _atHome = true;
   bool _foreground = true;
   String? _error;
@@ -166,8 +212,9 @@ class _SweepScreenState extends State<SweepScreen>
         move.houseIndexes.length == g.houses.length;
     _act(() {
       _lastAction = clear
-          ? '${seatNames[g.turn]} · Sweep! +${g.plays == 0 ? 25 : 50} pending'
-          : '${seatNames[g.turn]} · ${_moveLabel(move)}';
+          ? textFor('seep_pending',
+              {'p0': playerName(context, g.turn), 'p1': g.plays == 0 ? 25 : 50})
+          : '${playerName(context, g.turn)} · ${_moveLabel(move)}';
       g.play(move, botAnalysis: _movingAnalysis);
       _movingAnalysis = null;
       _moving = null;
@@ -180,12 +227,15 @@ class _SweepScreenState extends State<SweepScreen>
         ]..sort((a, b) => (g.lastCaptures[b]?.turn ?? -1)
             .compareTo(g.lastCaptures[a]?.turn ?? -1));
         _leftoverSeat = recipients.first;
-        _lastAction =
-            '${seatNames[_leftoverSeat]} collects ${leftovers.length} leftover cards · ${pointsOf(leftovers)} points · No sweep';
+        _lastAction = textFor('collects_leftover_cards_points_no_seep', {
+          'p0': playerName(context, _leftoverSeat),
+          'p1': leftovers.length,
+          'p2': pointsOf(leftovers)
+        });
       }
     });
     if (_leftoverCards.isNotEmpty) {
-      _motion.duration = const Duration(seconds: 3);
+      _motion.duration = Duration(seconds: 3);
       _motion.forward(from: 0);
     }
   }
@@ -222,8 +272,8 @@ class _SweepScreenState extends State<SweepScreen>
       try {
         _game = SweepGame.fromJson(jsonDecode(saved) as Map<String, dynamic>);
       } catch (_) {
-        _saveError =
-            'The saved game could not be loaded. Start a new game to continue.';
+        _saveError = localized('the_saved_game_could_not_be_loaded',
+            widget.preferences.getString('seep.language') ?? 'en');
       }
     }
   }
@@ -265,8 +315,8 @@ class _SweepScreenState extends State<SweepScreen>
         if (mounted && _saveError != null) setState(() => _saveError = null);
       } catch (_) {
         if (mounted) {
-          setState(() => _saveError =
-              'Could not save this turn. Keep the app open and try again.');
+          setState(
+              () => _saveError = textFor('could_not_save_this_turn_keep_the'));
         }
       }
     });
@@ -283,7 +333,7 @@ class _SweepScreenState extends State<SweepScreen>
         _error == null &&
         _showingFinalMove &&
         g?.phase == Phase.results) {
-      _botTimer = Timer(const Duration(seconds: 5), () {
+      _botTimer = Timer(Duration(seconds: 5), () {
         if (mounted) setState(() => _showingFinalMove = false);
       });
       return;
@@ -308,7 +358,8 @@ class _SweepScreenState extends State<SweepScreen>
       if (g.phase == Phase.call) {
         _act(() {
           g.call(bot.chooseCall(g.position));
-          _lastAction = '${seatNames[g.turn]} calls ${g.calledValue}';
+          _lastAction = textFor('calls',
+              {'p0': playerName(context, g.turn), 'p1': g.calledValue});
         });
       } else {
         final move = bot.chooseMove(g.position);
@@ -323,7 +374,7 @@ class _SweepScreenState extends State<SweepScreen>
       _save();
       _scheduleBot();
     } catch (e) {
-      setState(() => _error = 'Play paused: $e');
+      setState(() => _error = textFor('play_paused', {'p0': e}));
       _botTimer?.cancel();
     }
   }
@@ -333,15 +384,15 @@ class _SweepScreenState extends State<SweepScreen>
       final replace = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-                  title: const Text('Start a new game?'),
-                  content: const Text('This replaces your saved game.'),
+                  title: Text(textFor('start_a_new_game')),
+                  content: Text(textFor('this_replaces_your_saved_game')),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Keep game')),
+                        child: Text(textFor('keep_game'))),
                     FilledButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('New game'))
+                        child: Text(textFor('new_game')))
                   ]));
       if (replace != true || !mounted) return;
     }
@@ -369,21 +420,24 @@ class _SweepScreenState extends State<SweepScreen>
   }
 
   Future<void> _rules() async {
-    final rules = await rootBundle.loadString('SWEEP_RULES.md');
+    final rules = await rootBundle.loadString(
+        Localizations.localeOf(context).languageCode == 'hi'
+            ? 'SEEP_RULES_HI.md'
+            : 'SEEP_RULES.md');
     if (!mounted) return;
     await _overlay(() => showDialog<void>(
         context: context,
         builder: (context) => Dialog.fullscreen(
             child: Scaffold(
                 appBar: AppBar(
-                    title: const Text('Rulebook'),
+                    title: Text(textFor('rulebook')),
                     leading: IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close))),
+                        icon: Icon(Icons.close))),
                 body: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
                     child: SelectableText(rules,
-                        style: const TextStyle(fontSize: 16, height: 1.5)))))));
+                        style: TextStyle(fontSize: 16, height: 1.5)))))));
   }
 
   Future<void> _history() => _overlay(() => showModalBottomSheet<void>(
@@ -393,20 +447,21 @@ class _SweepScreenState extends State<SweepScreen>
           child: SizedBox(
               height: MediaQuery.sizeOf(context).height * .72,
               child: Column(children: [
-                const Padding(
+                Padding(
                     padding: EdgeInsets.all(20),
-                    child: Text('Deal log', style: TextStyle(fontSize: 22))),
+                    child: Text(textFor('deal_log'),
+                        style: TextStyle(fontSize: 22))),
                 if (_game!.reviewableDecisions.isNotEmpty)
                   TextButton.icon(
-                    icon: const Icon(Icons.analytics_outlined),
-                    label: const Text('Review completed-deal decisions'),
+                    icon: Icon(Icons.analytics_outlined),
+                    label: Text(textFor('review_completed_deal_decisions')),
                     onPressed: () => showDialog<void>(
                         context: context,
                         builder: (dialogContext) {
                           final report = const JsonEncoder.withIndent('  ')
                               .convert(_game!.reviewableDecisions);
                           return AlertDialog(
-                            title: const Text('Decision diagnostics'),
+                            title: Text(textFor('decision_diagnostics')),
                             content: SizedBox(
                                 width: 640,
                                 child: SingleChildScrollView(
@@ -415,23 +470,25 @@ class _SweepScreenState extends State<SweepScreen>
                               TextButton(
                                   onPressed: () => Clipboard.setData(
                                       ClipboardData(text: report)),
-                                  child: const Text('Copy diagnostics')),
+                                  child: Text(textFor('copy_diagnostics'))),
                               TextButton(
                                   onPressed: () => Navigator.pop(dialogContext),
-                                  child: const Text('Close')),
+                                  child: Text(textFor('close'))),
                             ],
                           );
                         }),
                   ),
-                const Padding(
+                Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                        'Hands and decision details become available after the deal.',
+                        textFor(
+                            'hands_and_decision_details_become_available_after'),
                         style: TextStyle(fontSize: 12))),
                 Expanded(
                     child: ListView(
-                        children: _game!.history.reversed
-                            .map((s) => ListTile(title: Text(s)))
+                        children: _game!.historyEvents.reversed
+                            .map((s) =>
+                                ListTile(title: Text(historyText(context, s))))
                             .toList()))
               ])))));
   @override
@@ -443,34 +500,41 @@ class _SweepScreenState extends State<SweepScreen>
       child: Scaffold(
           appBar: AppBar(
               toolbarHeight: 48,
-              title: Text('SWEEP',
-                  style: const TextStyle(fontSize: 18, letterSpacing: 2)),
+              title: Text(textFor('seep'),
+                  style: TextStyle(fontSize: 18, letterSpacing: 2)),
               leading: _atHome
                   ? null
                   : IconButton(
-                      key: const Key('home'),
-                      tooltip: 'Save and return home',
+                      key: Key('home'),
+                      tooltip: textFor('save_and_return_home'),
                       onPressed: _home,
-                      icon: const Icon(Icons.home_outlined)),
+                      icon: Icon(Icons.home_outlined)),
               actions: [
+                IconButton(
+                    key: const Key('language'),
+                    tooltip: 'Language / भाषा',
+                    onPressed: _languageDialog,
+                    icon: const Icon(Icons.language)),
                 if (!_atHome && _game!.phase != Phase.results) ...[
                   IconButton(
-                      key: const Key('pause'),
+                      key: Key('pause'),
                       onPressed: _togglePause,
-                      tooltip: _paused ? 'Resume play' : 'Pause play',
+                      tooltip: _paused
+                          ? textFor('resume_play')
+                          : textFor('pause_play'),
                       icon: Icon(_paused ? Icons.play_arrow : Icons.pause)),
                 ],
                 if (!_atHome)
                   IconButton(
-                      key: const Key('scores'),
-                      tooltip: 'Scores',
+                      key: Key('scores'),
+                      tooltip: textFor('scores'),
                       onPressed: _showScores,
-                      icon: const Icon(Icons.scoreboard_outlined)),
+                      icon: Icon(Icons.scoreboard_outlined)),
                 PopupMenuButton<String>(
-                    tooltip: 'Game menu',
+                    tooltip: textFor('game_menu'),
                     onOpened: _openMenu,
                     onCanceled: _closeMenu,
-                    icon: const Icon(Icons.more_horiz),
+                    icon: Icon(Icons.more_horiz),
                     onSelected: (value) {
                       _closeMenu();
                       if (value == 'rules') {
@@ -485,12 +549,13 @@ class _SweepScreenState extends State<SweepScreen>
                       }
                     },
                     itemBuilder: (_) => [
-                          const PopupMenuItem<String>(
-                              enabled: false, child: Text('Turn speed')),
+                          PopupMenuItem<String>(
+                              enabled: false,
+                              child: Text(textFor('turn_speed'))),
                           for (final entry in {
-                            'slow': 'Slow',
-                            'normal': 'Normal',
-                            'fast': 'Fast'
+                            'slow': textFor('slow'),
+                            'normal': textFor('normal'),
+                            'fast': textFor('fast')
                           }.entries)
                             CheckedPopupMenuItem<String>(
                                 value: entry.key,
@@ -501,25 +566,26 @@ class _SweepScreenState extends State<SweepScreen>
                                       'fast': .5
                                     }[entry.key],
                                 child: Text(entry.value)),
-                          const PopupMenuDivider(),
+                          PopupMenuDivider(),
                           if (!_atHome)
-                            const PopupMenuItem(
-                                value: 'history', child: Text('Deal log')),
-                          const PopupMenuItem(
-                              value: 'rules', child: Text('Rulebook')),
+                            PopupMenuItem(
+                                value: 'history',
+                                child: Text(textFor('deal_log'))),
+                          PopupMenuItem(
+                              value: 'rules', child: Text(textFor('rulebook'))),
                         ]),
               ]),
           body: SafeArea(
               child: Column(children: [
             if (_saveError != null)
               MaterialBanner(content: Text(_saveError!), actions: [
-                TextButton(onPressed: _save, child: const Text('Retry'))
+                TextButton(onPressed: _save, child: Text(textFor('retry')))
               ]),
             if (_error != null && !_atHome)
               Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(_error!,
-                      style: const TextStyle(color: Colors.orangeAccent))),
+                      style: TextStyle(color: Colors.orangeAccent))),
             Expanded(
                 child: _atHome
                     ? _homeBody()
@@ -532,47 +598,46 @@ class _SweepScreenState extends State<SweepScreen>
       child: SingleChildScrollView(
           padding: const EdgeInsets.all(28),
           child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
+              constraints: BoxConstraints(maxWidth: 480),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('A good hand.\nA better partnership.',
+                    Text(textFor('a_good_hand_a_better_partnership'),
                         style: TextStyle(
                             fontSize: 36, height: 1.15, color: cream)),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       for (final card in [48, 22, 51])
                         Padding(
                             padding: const EdgeInsets.all(8),
                             child: CardFace(card: card, large: true))
                     ]),
-                    const SizedBox(height: 24),
-                    const Text('You + Ari  vs  Mira + Dev',
+                    SizedBox(height: 24),
+                    Text(textFor('you_ari_vs_mira_dev'),
                         style: TextStyle(fontSize: 20, color: gold)),
-                    const SizedBox(height: 12),
-                    const Text(
-                        'Build houses, capture points, and clear the table. Play offline with three bots. First team to lead by 104 after a deal wins.',
+                    SizedBox(height: 12),
+                    Text(textFor('build_houses_capture_points_and_clear_the'),
                         style: TextStyle(height: 1.6, fontSize: 16)),
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28),
                     if (_game != null) ...[
                       FilledButton(
-                          key: const Key('resume'),
+                          key: Key('resume'),
                           onPressed: () {
                             setState(() => _atHome = false);
                             _scheduleBot();
                           },
                           child: Text(_game!.winner != null
-                              ? 'View game result'
-                              : 'Resume • Deal ${_game!.dealNumber}')),
-                      const SizedBox(height: 12)
+                              ? textFor('view_game_result')
+                              : textFor(
+                                  'resume_deal', {'p0': _game!.dealNumber}))),
+                      SizedBox(height: 12)
                     ],
                     OutlinedButton(
-                        key: const Key('new-game'),
+                        key: Key('new-game'),
                         onPressed: _newGame,
-                        child: const Text('New game')),
-                    const SizedBox(height: 16),
-                    const Text(
-                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.7',
+                        child: Text(textFor('new_game'))),
+                    SizedBox(height: 16),
+                    Text(textFor('choose_a_card_light_up_the_table'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))
@@ -584,22 +649,23 @@ class _SweepScreenState extends State<SweepScreen>
         padding: const EdgeInsets.all(24),
         child: Center(
             child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 620),
+                constraints: BoxConstraints(maxWidth: 620),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
                           g.winner == null
-                              ? 'Deal complete'
+                              ? textFor('deal_complete_2')
                               : g.winner == 0
-                                  ? 'You and Ari win!'
-                                  : 'Mira and Dev win',
-                          style: const TextStyle(fontSize: 32, color: gold)),
-                      const SizedBox(height: 12),
+                                  ? textFor('you_and_ari_win')
+                                  : textFor('mira_and_dev_win'),
+                          style: TextStyle(fontSize: 32, color: gold)),
+                      SizedBox(height: 12),
                       Text(g.winner == null
-                          ? 'A lead of 104 after a completed deal wins the game.'
-                          : 'Final lead: ${(g.totals[0] - g.totals[1]).abs()} points.'),
-                      const SizedBox(height: 24),
+                          ? textFor('a_lead_of_after_a_completed_deal')
+                          : textFor('final_lead_points',
+                              {'p0': (g.totals[0] - g.totals[1]).abs()})),
+                      SizedBox(height: 24),
                       for (var team = 0; team < 2; team++)
                         Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -610,45 +676,59 @@ class _SweepScreenState extends State<SweepScreen>
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(team == 0 ? 'You + Ari' : 'Mira + Dev',
-                                      style: const TextStyle(
+                                  Text(
+                                      team == 0
+                                          ? textFor('you_ari_2')
+                                          : textFor('mira_dev_2'),
+                                      style: TextStyle(
                                           fontSize: 22, color: cream)),
-                                  const SizedBox(height: 12),
-                                  _scoreLine('Captured card points',
+                                  SizedBox(height: 12),
+                                  _scoreLine(textFor('captured_card_points'),
                                       g.score(team).cardPoints),
-                                  _scoreLine('Eligible sweep bonus',
+                                  _scoreLine(textFor('eligible_seep_bonus'),
                                       g.score(team).eligibleSweepPoints),
                                   if (g.score(team).earnedSweepPoints >
                                       g.score(team).eligibleSweepPoints)
                                     Text(
-                                        '${g.score(team).earnedSweepPoints} sweep points discarded: fewer than 20 card points.',
-                                        style: const TextStyle(
+                                        textFor(
+                                            'seep_points_discarded_fewer_than_card_points',
+                                            {
+                                              'p0': g
+                                                  .score(team)
+                                                  .earnedSweepPoints
+                                            }),
+                                        style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.orangeAccent)),
-                                  const Divider(),
-                                  _scoreLine('This deal', g.lastScores[team]),
-                                  _scoreLine('Game total', g.totals[team])
+                                  Divider(),
+                                  _scoreLine(textFor('this_deal_2'),
+                                      g.lastScores[team]),
+                                  _scoreLine(
+                                      textFor('game_total'), g.totals[team])
                                 ])),
                       if (g.winner == null) ...[
                         Text(
-                            'Next dealer: ${seatNames[g.nextDealer.$1]} · ${g.nextDealer.$2} counted losses/ties',
+                            textFor('next_dealer_counted_losses_ties', {
+                              'p0': playerName(context, g.nextDealer.$1),
+                              'p1': g.nextDealer.$2
+                            }),
                             textAlign: TextAlign.center),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         FilledButton(
-                            key: const Key('next-deal'),
+                            key: Key('next-deal'),
                             onPressed: () => _act(() {
                                   _lastAction = null;
                                   g.continueGame();
                                 }),
-                            child: const Text('Next deal'))
+                            child: Text(textFor('next_deal')))
                       ] else
                         FilledButton(
                             onPressed: _newGame,
-                            child: const Text('Play again')),
-                      const SizedBox(height: 12),
+                            child: Text(textFor('play_again'))),
+                      SizedBox(height: 12),
                       TextButton(
                           onPressed: _home,
-                          child: const Text('Save and return home'))
+                          child: Text(textFor('save_and_return_home')))
                     ]))));
   }
 
@@ -656,6 +736,6 @@ class _SweepScreenState extends State<SweepScreen>
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(children: [
         Expanded(child: Text(title)),
-        Text('$points', style: const TextStyle(fontWeight: FontWeight.bold))
+        Text('$points', style: TextStyle(fontWeight: FontWeight.bold))
       ]));
 }

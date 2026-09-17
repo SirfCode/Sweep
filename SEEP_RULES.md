@@ -1,6 +1,6 @@
-# Sweep — Agreed Game Rules
+# Seep — Agreed Game Rules
 
-Version 1.0. This rulebook records the rules agreed for this mobile game, based on Seep. It is the reference for implementing Sweep.
+Version 1.0. This rulebook records the rules agreed for this mobile game, based on Seep. It is the reference for implementing Seep.
 
 ## 1. Players, teams, and terminology
 
@@ -18,7 +18,7 @@ Version 1.0. This rulebook records the rules agreed for this mobile game, based 
 
 ## 2. Objective and card points
 
-Capture cards and earn eligible sweep bonuses to score for your team.
+Capture cards and earn eligible seep bonuses to score for your team.
 
 | Cards | Points |
 |---|---:|
@@ -51,7 +51,7 @@ The opening move must follow the called value:
 
 - **Build:** Use one hand card to build a house of the called value, retaining a matching-rank card.
 - **Capture:** Play a card of the called rank and capture all eligible table cards and combinations of that value.
-- **Discard:** Only if neither building nor capturing the called value is possible, play the called-rank card as a loose table card.
+- **Throw:** Only if neither building nor capturing the called value is possible, play the called-rank card as a loose table card.
 
 If both building and capturing are possible, Player 1 may choose either. Capture opportunities at other values do not override the call.
 
@@ -61,13 +61,13 @@ Each player has received 12 cards, with four cards initially placed on the table
 
 ## 6. Choices on a normal turn
 
-Play exactly one hand card to **capture**, **build or contribute to a house**, or **discard**, subject to house commitments.
+Play exactly one hand card to **capture**, **build or contribute to a house**, or **throw**, subject to house commitments.
 
 - You may choose a legal build instead of a capture, even if the card played could capture loose cards.
-- You may discard a card that captures nothing, even if another card in your hand could capture.
+- You may throw a card that captures nothing, even if another card in your hand could capture.
 - If you are not using the card in a legal building move and it can capture, you must capture; you cannot leave it loose.
 - On an empty table, play one card face up as a loose card.
-- Having a house commitment does not prevent discarding other cards while retaining the required matching card.
+- Having a house commitment does not prevent throwing other cards while retaining the required matching card.
 
 The opening move follows the additional restrictions in Rule 5.
 
@@ -106,7 +106,7 @@ A house can only be captured with a card matching its declared value. It cannot 
 
 ## 9. Building and adding to houses
 
-Every building move must include the one card played from your hand as part of the resulting house. You cannot build using only table cards and discard a separate hand card.
+Every building move must include the one card played from your hand as part of the resulting house. You cannot build using only table cards and throw a separate hand card.
 
 For a new house, combine the played hand card with loose table cards to total a legal house value, and retain a matching-rank card.
 
@@ -141,9 +141,9 @@ Previous commitments to the old value end. Raising is sometimes described as bre
 
 **A pakka house cannot be raised or changed to a different value.**
 
-## 12. Sweeps
+## 12. Seeps
 
-A sweep occurs when a capture clears the entire table.
+A seep occurs when a capture clears the entire table.
 
 | Timing of capture | Bonus |
 |---|---:|
@@ -151,27 +151,27 @@ A sweep occurs when a capture clears the entire table.
 | Any intermediate play | 50 |
 | Final individual play of the entire deal | 0 |
 
-Sweep bonuses belong to the capturing team. A team receives its sweep bonuses only if it finishes the deal with **at least 20 card points**, excluding bonuses. It need not have reached 20 when the sweep occurs. If it finishes below 20, discard all its sweep bonuses for that deal.
+Seep bonuses belong to the capturing team. A team receives its seep bonuses only if it finishes the deal with **at least 20 card points**, excluding bonuses. It need not have reached 20 when the seep occurs. If it finishes below 20, discard all its seep bonuses for that deal.
 
 Examples:
 
-- 15 card points and two normal sweeps: 15 total points.
-- 20 card points and one normal sweep: 70 total points.
-- 35 card points and two normal sweeps: 135 total points.
+- 15 card points and two normal seeps: 15 total points.
+- 20 card points and one normal seep: 70 total points.
+- 35 card points and two normal seeps: 135 total points.
 
-After a sweep, the next player places a loose card on the empty table and play continues.
+After a seep, the next player places a loose card on the empty table and play continues.
 
 ## 13. End of deal and scoring
 
 After the final card is played:
 
-1. Award remaining loose table cards to the team that made the last capture. This automatic collection earns no sweep bonus.
+1. Award remaining loose table cards to the team that made the last capture. This automatic collection earns no seep bonus.
 2. No houses may remain; house commitments require their capture before play ends.
 3. Count each team's captured-card points, including the awarded leftovers.
-4. If a team has at least 20 card points, add its sweep bonuses; otherwise award it no sweep bonuses.
+4. If a team has at least 20 card points, add its seep bonuses; otherwise award it no seep bonuses.
 5. Add each team's deal score to its cumulative game score.
 
-**Deal score = card points + eligible sweep bonuses.**
+**Deal score = card points + eligible seep bonuses.**
 
 The winner or loser of this particular deal is determined by its deal scores, not cumulative scores.
 
@@ -182,7 +182,7 @@ Start both cumulative scores at zero. After scoring each complete deal, compare 
 - If one team leads by **104 or more points**, that team wins the game.
 - Otherwise, play another deal.
 
-Do not check the winning margin during a deal. Include all eligible sweep bonuses before checking it.
+Do not check the winning margin during a deal. Include all eligible seep bonuses before checking it.
 
 ## 15. Choosing the next dealer
 

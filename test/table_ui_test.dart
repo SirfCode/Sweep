@@ -62,7 +62,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2200));
     await tester.pump();
     expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
-    expect(find.text('Leftover cards → Dev\n13 points · No sweep'),
+    expect(find.text('Leftover cards → Dev\n13 points · No seep'),
         findsOneWidget);
     final totals = saved(prefs).totals.toList();
     expect(saved(prefs).captured[1], containsAll([50, 9, 0]));
@@ -168,7 +168,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
     expect(saved(prefs).phase, Phase.results);
-    expect(find.textContaining('Sweep!'), findsNothing);
+    expect(find.textContaining('Seep!'), findsNothing);
     expect(saved(prefs).score(0).earnedSweepPoints, 0);
     final totals = saved(prefs).totals.toList();
     expect(find.text('Scores in a moment…'), findsOneWidget);
@@ -211,9 +211,9 @@ void main() {
     expect(
         label('score-card-points-0'), '${game.score(0).cardPoints} card pts');
     expect(label('score-card-points-1'), '0 card pts');
-    expect(label('score-sweeps-0'), '2 sweeps');
-    expect(label('score-sweeps-1'), '1 sweeps');
-    expect(label('score-sweep-points-0'), contains('+75 sweep pts'));
+    expect(label('score-sweeps-0'), '2 seeps');
+    expect(label('score-sweeps-1'), '1 seeps');
+    expect(label('score-sweep-points-0'), contains('+75 seep pts'));
     expect(label('score-sweep-points-1'), contains('need 20 card pts'));
     await tester.tap(find.byKey(const Key('close-scores')));
     await tester.pumpAndSettle();
@@ -231,7 +231,7 @@ void main() {
     expect(label('score-game-total-0'), 'Game 145');
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('bot reveals the call then waits 30 seconds even on Fast',
+  testWidgets('bot reveals the call then waits 20 seconds even on Fast',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -251,12 +251,12 @@ void main() {
             of: find.byKey(const Key('table-call')),
             matching: find.text(rankName(saved(prefs).calledValue!))),
         findsOneWidget);
-    expect(find.textContaining('30s to study the table'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 29));
+    expect(find.textContaining('20s to study the table'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 19));
     expect(saved(prefs).plays, 0);
-    expect(find.textContaining('30s to study the table'), findsOneWidget);
+    expect(find.textContaining('20s to study the table'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.textContaining('30s to study the table'), findsNothing);
+    expect(find.textContaining('20s to study the table'), findsNothing);
     await tester.pump(const Duration(milliseconds: 1100));
     await tester.pump();
     expect(saved(prefs).plays, 1);

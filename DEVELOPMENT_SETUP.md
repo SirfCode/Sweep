@@ -16,7 +16,7 @@ The playable game passes `flutter analyze` and 24 automated tests across scoring
 
 Emulator hardware acceleration (WHPX) is available. `Sweep_Phone` is configured with a Pixel 5 profile and Android API 36 x86_64 system image. Its first boot completed successfully.
 
-The existing older ADB service repeatedly restarted the default connection. Sweep's test emulator uses port 5556 and a separate ADB server on port 5038. Set these variables in PowerShell before using Flutter with this running emulator:
+The existing older ADB service repeatedly restarted the default connection. Seep's test emulator uses port 5556 and a separate ADB server on port 5038. Set these variables in PowerShell before using Flutter with this running emulator:
 
 ```powershell
 $env:ANDROID_ADB_SERVER_PORT = '5038'

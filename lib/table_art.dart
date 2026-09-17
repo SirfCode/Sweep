@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'game/engine.dart';
+import 'l10n/strings.dart';
 
 const gold = Color(0xFFE8C889);
 const ink = Color(0xFF102D27);
@@ -91,7 +92,8 @@ class CardFace extends StatelessWidget {
     Widget symbol(double size) => SizedBox.square(
         dimension: size, child: CustomPaint(painter: SuitPainter(suit, color)));
     return Semantics(
-      label: '${cardName(card)}, ${cardOf(card).points} card points',
+      label: tr(context, 'card_points_2',
+          {'p0': cardName(card), 'p1': cardOf(card).points}),
       button: onTap != null,
       child: Tooltip(
         message: cardName(card),
@@ -378,8 +380,13 @@ class PlayerSeat extends StatelessWidget {
       this.compact = false});
   @override
   Widget build(BuildContext context) {
-    final description =
-        '${seatNames[seat]}${seat == 2 ? ', partner' : ', opponent'}, $count cards${dealer ? ', dealer' : ''}${active ? ', active player' : ''}';
+    final description = tr(context, 'cards', {
+      'p0': playerName(context, seat),
+      'p1': seat == 2 ? tr(context, 'partner') : tr(context, 'opponent'),
+      'p2': count,
+      'p3': dealer ? tr(context, 'dealer') : '',
+      'p4': active ? tr(context, 'active_player') : ''
+    });
     return Semantics(
         label: description,
         child: Tooltip(
@@ -411,7 +418,7 @@ class PlayerSeat extends StatelessWidget {
                         : []),
                 alignment: Alignment.center,
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(seatNames[seat],
+                  Text(playerName(context, seat),
                       style: TextStyle(
                           fontSize: 12,
                           color: active ? ink : cream,
@@ -467,7 +474,7 @@ class HouseStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
       label:
-          '${house.pakka ? 'Pakka' : 'House'} ${house.value}, ${house.owners.map((s) => seatNames[s]).join(', ')}',
+          '${house.pakka ? tr(context, 'pakka') : tr(context, 'house')} ${house.value}, ${house.owners.map((s) => playerName(context, s)).join(', ')}',
       button: true,
       child: InkWell(
           onTap: onTap,
@@ -520,7 +527,7 @@ class HouseStack extends StatelessWidget {
                                 color: seatColors[owner],
                                 shape: BoxShape.circle),
                             child: Center(
-                                child: Text(seatNames[owner][0],
+                                child: Text(playerName(context, owner)[0],
                                     style: const TextStyle(
                                         color: ink,
                                         fontSize: 11,

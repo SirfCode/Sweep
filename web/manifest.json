@@ -1,11 +1,11 @@
 {
-    "name": "Sweep",
-    "short_name": "Sweep",
+    "name": "Seep",
+    "short_name": "Seep",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#102D27",
     "theme_color": "#102D27",
-    "description": "Play Sweep with a bot partner against two opponents.",
+    "description": "Play Seep with a bot partner against two opponents.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [

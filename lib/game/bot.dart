@@ -36,13 +36,31 @@ class SweepBot {
   Move chooseMove(Position p) {
     lastAnalysis = {};
     final moves = _choices(p);
-    if (moves.length <= 1 || p.handCounts.length != 4) return tacticalMove(p);
+    Move fallback(String reason) {
+      final move = tacticalMove(p);
+      lastAnalysis = {
+        'chosen': move.key,
+        'reason': reason,
+        'search': 'tactical fallback',
+        'knownRanks': p.knownRanks.map((r) => r.toList()).toList(),
+      };
+      return move;
+    }
+
+    if (moves.length <= 1) return fallback('Only one retained legal choice.');
+    if (p.handCounts.length != 4) {
+      return fallback(
+          'Hand counts unavailable; used immediate tactical evaluation.');
+    }
     final worlds = <Map<String, dynamic>>[];
     for (var i = 0; i < 4; i++) {
       final world = sampleWorld(p);
       if (world != null) worlds.add(world.toJson());
     }
-    if (worlds.isEmpty) return tacticalMove(p);
+    if (worlds.isEmpty) {
+      return fallback(
+          'No consistent sampled hands found; used immediate tactical evaluation.');
+    }
     final risks = <String, double>{};
     for (final move in moves) {
       final after = SweepGame.fromJson(worlds.first)
@@ -181,6 +199,16 @@ class SweepBot {
       for (var c = 0; c < 52; c++)
         if (!seen.contains(c)) c
     ];
+    // A clearance cannot earn a bonus if even every point outside our hand
+    // would leave the opposing team below the 20-point eligibility threshold.
+    final opponent = after.turn % 2;
+    if (pointsOf(after.captured[opponent]) +
+            pointsOf(unseen) +
+            pointsOf(after.loose) +
+            pointsOf(after.houses.expand((h) => h.cards)) <
+        20) {
+      return 0;
+    }
     final dangerousRanks = <int>{};
     for (final rank in unseen.map(rankOf).toSet()) {
       final probe = Position(
@@ -204,13 +232,38 @@ class SweepBot {
         h.owners.contains(after.turn) && dangerousRanks.contains(h.value))) {
       return 1;
     }
-    final matches =
-        unseen.where((c) => dangerousRanks.contains(rankOf(c))).length;
-    final count =
-        before.phase == Phase.opening ? 12 : before.handCounts[after.turn];
+    // Reserve publicly guaranteed cards for ALL players before estimating the
+    // next player's unknown slots. A partner's known last jack cannot also be
+    // in the opponent's hand. Work in ranks so no hidden suit is invented.
+    final remainingByRank = <int, int>{};
+    for (final card in unseen) {
+      remainingByRank.update(rankOf(card), (n) => n + 1, ifAbsent: () => 1);
+    }
+    var reservedForNext = 0;
+    for (var seat = 0; seat < 4; seat++) {
+      if (seat == before.seat) continue;
+      final required = {
+        ...before.knownRanks[seat],
+        ...after.houses
+            .where((h) => h.owners.contains(seat))
+            .map((h) => h.value)
+      };
+      if (seat == after.turn) reservedForNext = required.length;
+      for (final rank in required) {
+        remainingByRank.update(rank, (n) => max(0, n - 1), ifAbsent: () => 0);
+      }
+    }
+    final poolSize = remainingByRank.values.fold(0, (a, b) => a + b);
+    final matches = remainingByRank.entries
+        .where((e) => dangerousRanks.contains(e.key))
+        .fold(0, (sum, e) => sum + e.value);
+    final count = max(
+        0,
+        (before.phase == Phase.opening ? 12 : before.handCounts[after.turn]) -
+            reservedForNext);
     var miss = 1.0;
-    for (var i = 0; i < count && i < unseen.length; i++) {
-      miss *= max(0, unseen.length - matches - i) / (unseen.length - i);
+    for (var i = 0; i < count && i < poolSize; i++) {
+      miss *= max(0, poolSize - matches - i) / (poolSize - i);
     }
     return 1 - miss;
   }

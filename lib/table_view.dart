@@ -1,38 +1,37 @@
 part of 'main.dart';
 
-String _moveLabel(Move move) => switch (move.kind) {
-      MoveKind.capture => 'Capture',
-      MoveKind.build => 'Build ${move.value}',
-      MoveKind.raise => 'Raise to ${move.value}',
-      MoveKind.discard => 'Discard',
-    };
-
 extension _TableView on _SweepScreenState {
+  String _moveLabel(Move move) => switch (move.kind) {
+        MoveKind.capture => textFor('capture'),
+        MoveKind.build => textFor('build', {'p0': move.value}),
+        MoveKind.raise => textFor('raise_to', {'p0': move.value}),
+        MoveKind.discard => textFor('discard'),
+      };
+
   Future<void> _showScores() => _overlay(() => showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-              title: Text('Scores · Deal ${_game!.dealNumber}'),
+              title: Text(textFor('scores_deal', {'p0': _game!.dealNumber})),
               content: SizedBox(
                   width: 440,
                   child: SingleChildScrollView(child: _scores(stacked: true))),
               actions: [
                 TextButton(
-                    key: const Key('close-scores'),
+                    key: Key('close-scores'),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Back to table'))
+                    child: Text(textFor('back_to_table')))
               ])));
   Widget _gathered(bool affected, Widget child) => _moving == null || !affected
       ? child
       : FadeTransition(
           opacity: Tween<double>(begin: 1, end: 0)
-              .chain(CurveTween(curve: const Interval(.6, .72)))
+              .chain(CurveTween(curve: Interval(.6, .72)))
               .animate(_motion),
           child: child);
   void _chooseCard(int card, List<Move> moves) {
     if (moves.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Keep this card for your house, or choose a card that follows the opening call.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(textFor('keep_this_card_for_your_house_or'))));
       return;
     }
     _update(() {
@@ -66,39 +65,42 @@ extension _TableView on _SweepScreenState {
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Expanded(
-                    child: Text(team == 0 ? 'You & Ari' : 'Mira & Dev',
+                    child: Text(
+                        team == 0 ? textFor('you_ari') : textFor('mira_dev'),
                         style: TextStyle(
                             color: team == 0 ? gold : cream, fontSize: 16))),
-                Text('Game ${g.totals[team]}',
+                Text(textFor('game', {'p0': g.totals[team]}),
                     key: Key('score-game-total-$team'),
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 14)),
+                    style: TextStyle(color: Colors.white70, fontSize: 14)),
               ]),
-              const SizedBox(height: 6),
-              const Text('THIS DEAL',
+              SizedBox(height: 6),
+              Text(textFor('this_deal'),
                   style: TextStyle(
                       color: Colors.white54, fontSize: 11, letterSpacing: 1)),
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
               Wrap(spacing: 12, runSpacing: 3, children: [
-                Text('${g.score(team).cardPoints} card pts',
+                Text(textFor('card_pts', {'p0': g.score(team).cardPoints}),
                     key: Key('score-card-points-$team'),
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: cream,
                         fontSize: 22,
                         fontWeight: FontWeight.bold)),
-                Text('${g.sweeps[team].length} sweeps',
+                Text(textFor('seeps', {'p0': g.sweeps[team].length}),
                     key: Key('score-sweeps-$team'),
-                    style: const TextStyle(color: gold, fontSize: 16)),
+                    style: TextStyle(color: gold, fontSize: 16)),
               ]),
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
               Tooltip(
-                  message:
-                      'Sweep bonuses count at the end of the deal only if your team collects at least 20 card points.',
+                  message: textFor('seep_bonuses_count_at_the_end_of'),
                   child: Text(
-                      '+${g.score(team).earnedSweepPoints} sweep pts${g.score(team).cardPoints < 20 ? ' (need 20 card pts)' : ' (pending)'}',
+                      textFor('seep_pts', {
+                        'p0': g.score(team).earnedSweepPoints,
+                        'p1': g.score(team).cardPoints < 20
+                            ? textFor('need_card_pts')
+                            : textFor('pending')
+                      }),
                       key: Key('score-sweep-points-$team'),
-                      style: const TextStyle(
-                          color: Colors.white60, fontSize: 14))),
+                      style: TextStyle(color: Colors.white60, fontSize: 14))),
             ])),
     ];
     return stacked
@@ -120,21 +122,24 @@ extension _TableView on _SweepScreenState {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Tooltip(
-          message:
-              '${team == 0 ? 'Your team' : 'Opposition'}: ${g.score(team).cardPoints} card points, ${g.sweeps[team].length} sweeps. Tap for scores.',
+          message: textFor('card_points_seeps_tap_for_scores', {
+            'p0': team == 0 ? textFor('your_team') : textFor('opposition'),
+            'p1': g.score(team).cardPoints,
+            'p2': g.sweeps[team].length
+          }),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.style_outlined, color: cream, size: 19),
-            const SizedBox(width: 5),
+            Icon(Icons.style_outlined, color: cream, size: 19),
+            SizedBox(width: 5),
             Text('${g.score(team).cardPoints}',
                 key: Key('live-points-$team'),
-                style: const TextStyle(
+                style: TextStyle(
                     color: cream, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(width: 12),
-            const Icon(Icons.cleaning_services, color: gold, size: 19),
-            const SizedBox(width: 5),
+            SizedBox(width: 12),
+            Icon(Icons.cleaning_services, color: gold, size: 19),
+            SizedBox(width: 5),
             Text('${g.sweeps[team].length}',
                 key: Key('live-sweeps-$team'),
-                style: const TextStyle(
+                style: TextStyle(
                     color: gold, fontSize: 16, fontWeight: FontWeight.bold)),
           ]),
         ),
@@ -169,7 +174,7 @@ extension _TableView on _SweepScreenState {
             return rank == 0 ? a.compareTo(b) : rank;
           });
         Widget seat(int s) => Tooltip(
-            message: '${seatNames[s]} · latest capture',
+            message: textFor('latest_capture', {'p0': playerName(context, s)}),
             child: InkWell(
                 key: Key('last-capture-player-$s'),
                 onTap: () => _showLastCapture(s),
@@ -188,32 +193,43 @@ extension _TableView on _SweepScreenState {
                 ? 1.5
                 : 1.25;
         final status = _showingFinalMove
-            ? 'Deal complete · $_lastAction'
+            ? textFor('deal_complete', {'p0': _lastAction})
             : _paused
-                ? 'Paused — take your time'
+                ? textFor('paused_take_your_time')
                 : _moving != null
-                    ? '${seatNames[g.turn]} · ${_moveLabel(_moving!)}'
+                    ? '${playerName(context, g.turn)} · ${_moveLabel(_moving!)}'
                     : g.phase == Phase.opening && g.turn != 0
-                        ? '${seatNames[g.turn]} called ${g.calledValue} · ${widget.openingDelay.inSeconds}s to study the table'
+                        ? textFor('called_s_to_study_the_table', {
+                            'p0': playerName(context, g.turn),
+                            'p1': g.calledValue,
+                            'p2': widget.openingDelay.inSeconds
+                          })
                         : (human &&
                                 g.phase != Phase.call &&
                                 _lastAction != null)
-                            ? 'Your turn · $_lastAction'
+                            ? textFor('your_turn', {'p0': _lastAction})
                             : _lastAction ??
                                 (g.phase == Phase.call
                                     ? (g.turn == 0
-                                        ? 'Choose your opening call'
-                                        : '${seatNames[g.turn]} is choosing a call')
+                                        ? textFor('choose_your_opening_call')
+                                        : textFor('is_choosing_a_call', {
+                                            'p0': playerName(context, g.turn)
+                                          }))
                                     : human
                                         ? (g.phase == Phase.opening
-                                            ? 'Opening call: ${g.calledValue} · Choose a card'
-                                            : 'Your turn · Choose a card')
-                                        : '${seatNames[g.turn]} is thinking…');
+                                            ? textFor(
+                                                'opening_call_choose_a_card',
+                                                {'p0': g.calledValue})
+                                            : textFor(
+                                                'your_turn_choose_a_card'))
+                                        : textFor('is_thinking', {
+                                            'p0': playerName(context, g.turn)
+                                          }));
         final sections = <Widget>[
           Expanded(
               child: Center(
                   child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1800),
+                      constraints: BoxConstraints(maxWidth: 1800),
                       child: FeltSurface(
                           child: Stack(children: [
                         Positioned(
@@ -238,10 +254,12 @@ extension _TableView on _SweepScreenState {
                             top: 6,
                             left: 8,
                             child: Tooltip(
-                              message:
-                                  '${seatNames[(g.dealer + 1) % 4]} called ${g.calledValue}',
+                              message: textFor('called', {
+                                'p0': playerName(context, (g.dealer + 1) % 4),
+                                'p1': g.calledValue
+                              }),
                               child: Container(
-                                key: const Key('table-call'),
+                                key: Key('table-call'),
                                 width: 40,
                                 height: 70,
                                 decoration: BoxDecoration(
@@ -252,21 +270,22 @@ extension _TableView on _SweepScreenState {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text('CALL',
+                                    Text(textFor('call'),
                                         style: TextStyle(
                                             color: ink,
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold)),
                                     Text(rankName(g.calledValue!),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             color: ink,
                                             fontFamily: 'Georgia',
                                             fontSize: 25,
                                             fontWeight: FontWeight.bold)),
-                                    Text(seatNames[(g.dealer + 1) % 4],
+                                    Text(
+                                        playerName(context, (g.dealer + 1) % 4),
                                         maxLines: 1,
-                                        key: const Key('call-player'),
-                                        style: const TextStyle(
+                                        key: Key('call-player'),
+                                        style: TextStyle(
                                             color: ink,
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600)),
@@ -282,9 +301,10 @@ extension _TableView on _SweepScreenState {
                             bottom: 4,
                             right: 8,
                             child: Tooltip(
-                                message: 'Your latest capture · tap to view',
+                                message:
+                                    textFor('your_latest_capture_tap_to_view'),
                                 child: InkWell(
-                                    key: const Key('last-capture-player-0'),
+                                    key: Key('last-capture-player-0'),
                                     onTap: () => _showLastCapture(0),
                                     child: Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -292,17 +312,16 @@ extension _TableView on _SweepScreenState {
                                         child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              const Text('You  ',
+                                              Text(textFor('you'),
                                                   style: TextStyle(
                                                       color: cream,
                                                       fontSize: 11)),
-                                              const Icon(Icons.style_outlined,
+                                              Icon(Icons.style_outlined,
                                                   color: cream, size: 12),
-                                              const SizedBox(width: 3),
+                                              SizedBox(width: 3),
                                               Text('${g.hands[0].length}',
-                                                  key:
-                                                      const Key('cards-left-0'),
-                                                  style: const TextStyle(
+                                                  key: Key('cards-left-0'),
+                                                  style: TextStyle(
                                                       color: cream,
                                                       fontSize: 11)),
                                             ]))))),
@@ -314,7 +333,7 @@ extension _TableView on _SweepScreenState {
                             child: LayoutBuilder(
                                 builder: (context, area) =>
                                     SingleChildScrollView(
-                                        key: const Key('table-cards'),
+                                        key: Key('table-cards'),
                                         padding: const EdgeInsets.all(6),
                                         child: ConstrainedBox(
                                             constraints: BoxConstraints(
@@ -343,9 +362,10 @@ extension _TableView on _SweepScreenState {
                                                         spacing: 9,
                                                         runSpacing: 10,
                                                         children: [
-                                                          for (final c in g.loose)
+                                                          for (final c
+                                                              in g.loose)
                                                             AnimatedOpacity(
-                                                                duration: const Duration(
+                                                                duration: Duration(
                                                                     milliseconds:
                                                                         180),
                                                                 opacity: _selectedCard !=
@@ -427,7 +447,7 @@ extension _TableView on _SweepScreenState {
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           24)),
-                                              child: const Icon(Icons.pause,
+                                              child: Icon(Icons.pause,
                                                   color: gold, size: 32)))))),
                       ]))))),
           SizedBox(
@@ -457,7 +477,8 @@ extension _TableView on _SweepScreenState {
                                           g.call(value);
                                           _lastAction = null;
                                         }),
-                                    child: Text('Call $value'))),
+                                    child: Text(
+                                        textFor('call_2', {'p0': value})))),
                         ]))),
           if (_selectedCard != null && _moving == null && !(compact && wide))
             _moveTray(options, true),
@@ -470,7 +491,7 @@ extension _TableView on _SweepScreenState {
             _hand(hand, legal, tight),
         ];
         return ColoredBox(
-            color: const Color(0xFF161F1A),
+            color: Color(0xFF161F1A),
             child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: Column(children: sections)));
@@ -484,16 +505,15 @@ extension _TableView on _SweepScreenState {
             final travel =
                 Curves.easeInOut.transform(((t - .4) / .6).clamp(0.0, 1.0));
             final destination = switch (_leftoverSeat) {
-              0 => const Offset(.5, .94),
-              1 => const Offset(.94, .5),
-              2 => const Offset(.5, .06),
-              _ => const Offset(.06, .5),
+              0 => Offset(.5, .94),
+              1 => Offset(.94, .5),
+              2 => Offset(.5, .06),
+              _ => Offset(.06, .5),
             };
-            final position =
-                Offset.lerp(const Offset(.5, .5), destination, travel)!;
+            final position = Offset.lerp(Offset(.5, .5), destination, travel)!;
             final spread =
                 (box.maxWidth - 130).clamp(0.0, 260.0) * (1 - travel);
-            return Stack(key: const Key('leftover-flight'), children: [
+            return Stack(key: Key('leftover-flight'), children: [
               for (var i = 0; i < _leftoverCards.length; i++)
                 Positioned(
                   left: (position.dx * (box.maxWidth - 72) +
@@ -508,16 +528,19 @@ extension _TableView on _SweepScreenState {
                   child: TableCard(card: _leftoverCards[i]),
                 ),
               Align(
-                  alignment: const Alignment(0, -.8),
+                  alignment: Alignment(0, -.8),
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                         color: ink, borderRadius: BorderRadius.circular(12)),
                     child: Text(
-                        'Leftover cards → ${seatNames[_leftoverSeat]}\n${pointsOf(_leftoverCards)} points · No sweep',
+                        textFor('leftover_cards_points_no_seep', {
+                          'p0': playerName(context, _leftoverSeat),
+                          'p1': pointsOf(_leftoverCards)
+                        }),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: cream)),
+                        style: TextStyle(color: cream)),
                   )),
             ]);
           }));
@@ -531,10 +554,10 @@ extension _TableView on _SweepScreenState {
         move.selectedLoose.length == game.loose.length &&
         move.houseIndexes.length == game.houses.length;
     final origin = switch (game.turn) {
-      0 => const Offset(.5, .92),
-      1 => const Offset(.94, .5),
-      2 => const Offset(.5, .08),
-      _ => const Offset(.06, .5),
+      0 => Offset(.5, .92),
+      1 => Offset(.94, .5),
+      2 => Offset(.5, .08),
+      _ => Offset(.06, .5),
     };
     return AnimatedBuilder(
         animation: _motion,
@@ -548,8 +571,8 @@ extension _TableView on _SweepScreenState {
               const center = Offset(.5, .5);
               final position = t < .65
                   ? Offset.lerp(origin, center, travel)!
-                  : Offset.lerp(center,
-                      capture ? origin : const Offset(.5, .42), gather)!;
+                  : Offset.lerp(
+                      center, capture ? origin : Offset(.5, .42), gather)!;
               return Stack(children: [
                 Positioned(
                     left: position.dx * (box.maxWidth - 72 * flightScale),
@@ -580,13 +603,13 @@ extension _TableView on _SweepScreenState {
                                     radius: 17,
                                     backgroundColor: gold,
                                     child: Text('${move.value}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             color: ink,
                                             fontWeight: FontWeight.bold)))),
                         ]))),
                 if (sweep && t > .6)
                   Align(
-                      alignment: const Alignment(0, -.4),
+                      alignment: Alignment(0, -.4),
                       child: Transform.scale(
                           scale: .8 + gather * .2,
                           child: Container(
@@ -601,12 +624,12 @@ extension _TableView on _SweepScreenState {
                                         color: gold.withValues(alpha: .4),
                                         blurRadius: 28)
                                   ]),
-                              child: const Row(
+                              child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.auto_awesome, color: gold),
                                     SizedBox(width: 8),
-                                    Text('SWEEP',
+                                    Text(textFor('seep'),
                                         key: Key('sweep-celebration'),
                                         style: TextStyle(
                                             color: gold,
@@ -619,14 +642,14 @@ extension _TableView on _SweepScreenState {
   }
 
   Widget _hand(List<int> hand, List<Move> legal, bool tight) => SizedBox(
-      key: const Key('hand'),
+      key: Key('hand'),
       height: 126,
       child: hand.isEmpty
           ? Center(
               child: Text(
                   _showingFinalMove
-                      ? 'Scores in a moment…'
-                      : 'Waiting for the deal',
+                      ? textFor('scores_in_a_moment')
+                      : textFor('waiting_for_the_deal'),
                   style: TextStyle(color: Colors.white54, fontSize: 12)))
           : LayoutBuilder(builder: (context, area) {
               const cardWidth = 72.0;
@@ -678,7 +701,7 @@ extension _TableView on _SweepScreenState {
     final g = _game!;
     final move = _preview!;
     return Container(
-        key: const Key('move-tray'),
+        key: Key('move-tray'),
         padding: const EdgeInsets.fromLTRB(8, 3, 8, 3),
         decoration: BoxDecoration(
             color: ink,
@@ -686,19 +709,19 @@ extension _TableView on _SweepScreenState {
             border: Border.all(color: gold.withValues(alpha: .25))),
         child: Row(children: [
           IconButton(
-              tooltip: 'Cancel selection',
+              tooltip: textFor('cancel_selection'),
               onPressed: () => _update(() {
                     _selectedCard = null;
                     _preview = null;
                   }),
-              icon: const Icon(Icons.close, size: 18)),
+              icon: Icon(Icons.close, size: 18)),
           Expanded(
               child: SizedBox(
                   height: compact ? 46 : 79,
                   child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: options.length,
-                      separatorBuilder: (_, index) => const SizedBox(width: 5),
+                      separatorBuilder: (_, index) => SizedBox(width: 5),
                       itemBuilder: (context, index) {
                         final m = options[index];
                         final cards = g.position.affectedCards(m);
@@ -722,7 +745,7 @@ extension _TableView on _SweepScreenState {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(_moveLabel(m),
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               color: cream, fontSize: 11)),
                                       if (!compact)
                                         SizedBox(
@@ -747,15 +770,15 @@ extension _TableView on _SweepScreenState {
                                                                 card: cards[
                                                                     i])))),
                                               if (cards.isEmpty)
-                                                const Center(
+                                                Center(
                                                     child: Icon(Icons.add,
                                                         size: 20, color: gold)),
                                             ])),
                                     ])));
                       }))),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           FilledButton(
-              key: const Key('confirm-move'),
+              key: Key('confirm-move'),
               onPressed: _canPlay ? () => _play(move) : null,
               style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12)),
@@ -768,40 +791,43 @@ extension _TableView on _SweepScreenState {
       builder: (context) {
         final capture = _game!.lastCaptures[seat];
         return AlertDialog(
-          title: Text('${seatNames[seat]} · Latest capture'),
+          title: Text(
+              textFor('latest_capture_2', {'p0': playerName(context, seat)})),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
               child: capture == null
-                  ? const Text('No capture recorded in this deal yet.')
+                  ? Text(textFor('no_capture_recorded_in_this_deal_yet'))
                   : Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                          Text('${pointsOf(capture.cards)} card points',
-                              key: const Key('last-capture-points'),
-                              style: const TextStyle(
+                          Text(
+                              textFor('card_points',
+                                  {'p0': pointsOf(capture.cards)}),
+                              key: Key('last-capture-points'),
+                              style: TextStyle(
                                   fontSize: 20, fontWeight: FontWeight.bold)),
                           if (capture.sweepPoints > 0)
-                            Text(
-                                '+${capture.sweepPoints} sweep bonus (requires 20 team card points)'),
-                          const SizedBox(height: 16),
+                            Text(textFor('seep_bonus_requires_team_card_points',
+                                {'p0': capture.sweepPoints})),
+                          SizedBox(height: 16),
                           Wrap(spacing: 8, runSpacing: 10, children: [
                             for (final card in capture.cards)
                               CardFace(
                                   key: Key('last-capture-card-$card'),
                                   card: card),
                           ]),
-                          const SizedBox(height: 12),
-                          Text(
-                              'Turn ${capture.turn} · Includes the card played.'),
+                          SizedBox(height: 12),
+                          Text(textFor('turn_includes_the_card_played',
+                              {'p0': capture.turn})),
                         ]),
             ),
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'))
+                child: Text(textFor('close')))
           ],
         );
       }));
@@ -811,10 +837,10 @@ extension _TableView on _SweepScreenState {
       builder: (context) => AlertDialog(
               title: Row(children: [
                 if (house.pakka)
-                  const Padding(
+                  Padding(
                       padding: EdgeInsets.only(right: 8),
                       child: Icon(Icons.lock, color: gold)),
-                Text('House of ${house.value}')
+                Text(textFor('house_of', {'p0': house.value}))
               ]),
               content: SingleChildScrollView(
                   child: Column(
@@ -827,16 +853,19 @@ extension _TableView on _SweepScreenState {
                           child: Wrap(spacing: 5, runSpacing: 5, children: [
                             for (final c in group) CardFace(card: c)
                           ])),
-                    Text(house.owners.map((s) => seatNames[s]).join(' & '),
-                        style: const TextStyle(color: gold)),
-                    const SizedBox(height: 8),
+                    Text(
+                        house.owners
+                            .map((s) => playerName(context, s))
+                            .join(' & '),
+                        style: TextStyle(color: gold)),
+                    SizedBox(height: 8),
                     Text(house.pakka
-                        ? 'Locked value. Capture with a matching card.'
-                        : 'Capture with a matching card, or raise its value.'),
+                        ? textFor('locked_value_capture_with_a_matching_card')
+                        : textFor('capture_with_a_matching_card_or_raise')),
                   ])),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'))
+                    child: Text(textFor('close')))
               ])));
 }
