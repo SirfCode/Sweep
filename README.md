@@ -12,7 +12,7 @@ Each decision compares up to seven candidate moves across four plausible unseen-
 
 Run `dart run tool/benchmark_bots.dart 100` to reproduce 200 paired deals against the preserved original policy, using seeds 700–799 and alternating teams/dealers. Public-memory policy measurement: 180 wins, 19 losses, 1 tie, mean score margin +156.01; sweeps 753 versus 41. The previous sampled policy measured 179 wins, 21 losses, margin +146.51 and sweeps 750 versus 59 against the same baseline. Decision latency was 18.2 ms at the 95th percentile and 147.7 ms maximum on the development machine; browser and device performance may differ. These measure strength against the original policy, not against human players or a direct match between policy revisions.
 
-## Version 0.6 — stronger bots, free guest play
+## Version 0.7 — capture review and clearer animations
 
 This release is the free guest version: play without signing in, against three bots. Progress is saved locally on the current device/browser; no account is required.
 
@@ -24,17 +24,19 @@ Tap **Scores** in the toolbar for the deal number, cumulative **Game** totals an
 
 Tap a hand card, then a highlighted table target or a visual move option. The gold outline previews the complete legal move; press Capture, Build, Raise, or Discard to play it. Cancel selection leaves the deal unchanged. The shared table scrolls when crowded. Tap a house without a selection to inspect its component groups and commitments.
 
+Tap any bot's player icon, or **You** beside your remaining-card count, to view that player's latest capture. The popup shows the captured cards including their played card, card points and any provisional sweep bonus. It pauses play, retains only the latest capture per player, survives save/resume and resets each deal. Discards and builds do not replace it; end-of-deal leftover awards are not a capturing turn. Older saves recover captures from public decision records when available.
+
 Turns animate the played card onto the table, pause, then gather the affected cards into a capture or house. Normal bot turns take about 3.6 seconds; the speed menu offers Slow (about 5.8 seconds) and Fast (about 1.8 seconds), remembered between sessions. Speed changes apply to subsequent moves. Pause freezes the current animation. Opening the rulebook, deal log, or house details also pauses play. Returning home during an animation retains the last completed turn; Resume continues from that saved position. Existing 0.1 saves remain compatible.
 
 After a bot calls 9–13 and the table is revealed, the game gives you 30 seconds to study the cards before the opening move. This viewing pause is independent of the speed setting and restarts when resuming an opening bot turn. Your own opening turn has no time limit: play continues only after you confirm your move.
 
-After the final move resolves, the completed table and live scores remain visible for five seconds before the deal-score screen opens. The completed deal is saved immediately during this pause.
+After the final move resolves, any leftover cards stay visible briefly and travel to the last capturer in a three-second collection animation, labelled with the recipient and card points. The table then remains visible for five seconds before the deal-score screen opens. The completed deal is saved immediately; pausing or inspecting a player also pauses the collection animation.
 
 Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` receive an own-hand-only `Position`, without the deck or other players' cards. Legal moves are shared by bots and the human interface. Overlapping capture choices remain selectable; outcomes that capture the same cards share one representative grouping because houses are indivisible.
 
 Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.
 
-Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.6.0` on `codex/0.2-table-ui`; the package version is `0.6.0+6`.
+Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.7.0` on `codex/0.2-table-ui`; the package version is `0.7.0+7`.
 
 ## Run on the configured emulator
 

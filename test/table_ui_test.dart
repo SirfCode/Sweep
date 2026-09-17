@@ -17,6 +17,117 @@ SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
     jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
+  testWidgets('leftovers visibly reach the last capturer before scores',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = SweepGame.newGame(seed: 42, dealer: 3)
+      ..phase = Phase.playing
+      ..turn = 0
+      ..plays = 47
+      ..deck = []
+      ..hands = [
+        [50],
+        [],
+        [],
+        []
+      ]
+      ..loose = [9, 0]
+      ..houses = []
+      ..lastCaptureTeam = 1
+      ..lastCaptures = [
+        null,
+        null,
+        null,
+        LastCapture([1, 14], 45, 0)
+      ]
+      ..captured = [
+        [],
+        [
+          for (var c = 0; c < 52; c++)
+            if (![50, 9, 0].contains(c)) c
+        ]
+      ];
+    game.validate();
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('hand-50')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-move')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump();
+    expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
+    expect(find.text('Leftover cards → Dev\n13 points · No sweep'),
+        findsOneWidget);
+    final totals = saved(prefs).totals.toList();
+    expect(saved(prefs).captured[1], containsAll([50, 9, 0]));
+    await tester.tap(find.byKey(const Key('last-capture-player-2')));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.byKey(const Key('leftover-flight')), findsNothing);
+    expect(find.text('Captured card points'), findsNothing);
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.text('Captured card points'), findsNWidgets(2));
+    expect(saved(prefs).totals, totals);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('each player opens only their latest capture on a phone',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final game = SweepGame.newGame(seed: 42, dealer: 3);
+    game.call(game.position.calls.first);
+    game.lastCaptures = [
+      LastCapture([0, 13], 4, 25),
+      LastCapture([39, 26], 5, 0),
+      LastCapture(List.generate(20, (c) => c), 6, 50),
+      null,
+    ];
+    SharedPreferences.setMockInitialValues(
+        {saveKey: jsonEncode(game.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byKey(const Key('resume')));
+    await tester.pumpAndSettle();
+    for (var seat = 0; seat < 4; seat++) {
+      await tester.tap(find.byKey(Key('last-capture-player-$seat')));
+      await tester.pumpAndSettle();
+      expect(find.text('${seatNames[seat]} · Latest capture'), findsOneWidget);
+      final capture = game.lastCaptures[seat];
+      if (capture == null) {
+        expect(
+            find.text('No capture recorded in this deal yet.'), findsOneWidget);
+      } else {
+        expect(find.text('${pointsOf(capture.cards)} card points'),
+            findsOneWidget);
+        for (final card in capture.cards) {
+          expect(find.byKey(Key('last-capture-card-$card')), findsOneWidget);
+        }
+      }
+      final state = prefs.getString(saveKey);
+      await tester.pump(const Duration(seconds: 35));
+      expect(prefs.getString(saveKey), state);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+    }
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('final move stays visible for five seconds before scores',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 800));
@@ -52,9 +163,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('confirm-move')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(find.byKey(const Key('sweep-celebration')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
     expect(saved(prefs).phase, Phase.results);
+    expect(find.textContaining('Sweep!'), findsNothing);
+    expect(saved(prefs).score(0).earnedSweepPoints, 0);
     final totals = saved(prefs).totals.toList();
     expect(find.text('Scores in a moment…'), findsOneWidget);
     expect(find.text('Captured card points'), findsNothing);

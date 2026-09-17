@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0
+
+- Animate leftover cards to the last capturer for three seconds, show the recipient and points, then pause before scores; respect pause and inspection during collection.
+- Tap a player icon (or the human's You/card-count control) to inspect only their latest capture, with visual cards, card points and a separate provisional sweep bonus. Pause during inspection; save per-player captures and reset each deal.
+- Show a normal capture animation and message for a final-turn table clearance, without the sweep celebration.
+
 ## 0.6.0
 
 - Retain public rank evidence from calls and houses until played; constrain sampled hands with that evidence and migrate older diagnostic saves without reading hidden hands.

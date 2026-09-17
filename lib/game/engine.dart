@@ -23,6 +23,20 @@ enum Phase { call, opening, playing, results }
 
 enum MoveKind { capture, build, raise, discard }
 
+/// Public cards won by one player on their most recent capturing turn.
+class LastCapture {
+  final List<int> cards;
+  final int turn, sweepPoints;
+  LastCapture(Iterable<int> cards, this.turn, this.sweepPoints)
+      : cards = List.unmodifiable(cards);
+  Map<String, dynamic> toJson() =>
+      {'cards': cards, 'turn': turn, 'sweepPoints': sweepPoints};
+  factory LastCapture.fromJson(Map<String, dynamic> json) => LastCapture(
+      List<int>.from(json['cards'] as List),
+      json['turn'] as int,
+      json['sweepPoints'] as int);
+}
+
 class House {
   final int value;
   final List<List<int>> groups;
@@ -300,6 +314,7 @@ class SweepGame {
   List<int> lastScores = [0, 0];
   List<String> history = [];
   List<Map<String, dynamic>> decisions = [];
+  List<LastCapture?> lastCaptures = List.filled(4, null);
   List<Set<int>> knownRanks = List.generate(4, (_) => <int>{});
 
   void _rememberHouses(Iterable<House> publicHouses) {
@@ -360,6 +375,7 @@ class SweepGame {
     dealNumber++;
     plays = 0;
     calledValue = null;
+    lastCaptures = List.filled(4, null);
     knownRanks = List.generate(4, (_) => <int>{});
     lastCaptureTeam = null;
     houses = [];
@@ -461,6 +477,16 @@ class SweepGame {
         loose.add(move.card);
         _log('${seatNames[actor]} places ${cardName(move.card)}.');
       case MoveKind.capture:
+        lastCaptures[actor] = LastCapture(
+            [move.card, ...affected],
+            plays + 1,
+            loose.isEmpty && remainingHouses.isEmpty
+                ? (plays == 0
+                    ? 25
+                    : plays == 47
+                        ? 0
+                        : 50)
+                : 0);
         captured[actor % 2].addAll([move.card, ...affected]);
         lastCaptureTeam = actor % 2;
         _log(
@@ -630,6 +656,7 @@ class SweepGame {
         'lastScores': lastScores,
         'history': history,
         'decisions': decisions,
+        'lastCaptures': lastCaptures.map((c) => c?.toJson()).toList(),
         'knownRanks': knownRanks.map((r) => r.toList()).toList(),
       };
   factory SweepGame.fromJson(Map<String, dynamic> j) {
@@ -665,6 +692,46 @@ class SweepGame {
     g.decisions = ((j['decisions'] as List?) ?? [])
         .map((d) => Map<String, dynamic>.from(d as Map))
         .toList();
+    if (j['lastCaptures'] case final List captures) {
+      g.lastCaptures = captures
+          .map((c) => c == null
+              ? null
+              : LastCapture.fromJson(Map<String, dynamic>.from(c as Map)))
+          .toList();
+    } else {
+      // Older diagnostic saves contain all public capture targets. Never use
+      // recorded hidden hands, and never mistake end-of-deal leftovers for a turn.
+      for (final d in g.decisions
+          .where((d) => d['deal'] == g.dealNumber && d['turn'] != 0)) {
+        final chosen = d['chosen'] as Map;
+        final key = (chosen['key'] as String).split('/');
+        if (key.first != 'capture') continue;
+        final actor = seatNames.indexOf(d['player'] as String);
+        if (actor < 0) continue;
+        final cards = [
+          int.parse(key[1]),
+          for (final name in chosen['targets'] as List)
+            for (var c = 0; c < 52; c++)
+              if (cardName(c) == name) c
+        ];
+        final p = d['position'] as Map;
+        final tableCount = (p['loose'] as List).length +
+            (p['houses'] as List).fold<int>(
+                0,
+                (n, h) =>
+                    n +
+                    House.fromJson(Map<String, dynamic>.from(h as Map))
+                        .cards
+                        .length);
+        final turn = d['turn'] as int;
+        g.lastCaptures[actor] = LastCapture(
+            cards,
+            turn,
+            cards.length - 1 == tableCount && turn < 48
+                ? (turn == 1 ? 25 : 50)
+                : 0);
+      }
+    }
     if (j['knownRanks'] case final List ranks) {
       g.knownRanks = ranks.map((r) => Set<int>.from(r as List)).toList();
     } else {

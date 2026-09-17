@@ -85,6 +85,8 @@ class _SweepScreenState extends State<SweepScreen>
   late final AnimationController _motion;
   Move? _moving;
   bool _showingFinalMove = false;
+  List<int> _leftoverCards = [];
+  int _leftoverSeat = 0;
   int? _selectedCard;
   Move? _preview;
   bool _paused = false;
@@ -113,7 +115,10 @@ class _SweepScreenState extends State<SweepScreen>
     } finally {
       if (mounted) {
         setState(() => _paused = wasPaused);
-        if (_moving != null && !_paused && _foreground && !_atHome) {
+        if ((_moving != null || _leftoverCards.isNotEmpty) &&
+            !_paused &&
+            _foreground &&
+            !_atHome) {
           _motion.forward();
         } else {
           _scheduleBot();
@@ -139,21 +144,50 @@ class _SweepScreenState extends State<SweepScreen>
   }
 
   void _finishMove(AnimationStatus status) {
+    if (status == AnimationStatus.completed &&
+        _moving == null &&
+        _leftoverCards.isNotEmpty) {
+      setState(() => _leftoverCards = []);
+      _scheduleBot();
+      return;
+    }
     if (status != AnimationStatus.completed || _moving == null) return;
     final move = _moving!;
     final g = _game!;
+    final leftovers = g.plays == 47
+        ? [
+            ...g.loose.where((c) => !move.selectedLoose.contains(c)),
+            if (move.kind == MoveKind.discard) move.card
+          ]
+        : <int>[];
     final clear = move.kind == MoveKind.capture &&
+        g.plays < 47 &&
         move.selectedLoose.length == g.loose.length &&
         move.houseIndexes.length == g.houses.length;
     _act(() {
       _lastAction = clear
-          ? '${seatNames[g.turn]} · Sweep!${g.plays == 47 ? '' : ' +${g.plays == 0 ? 25 : 50} pending'}'
+          ? '${seatNames[g.turn]} · Sweep! +${g.plays == 0 ? 25 : 50} pending'
           : '${seatNames[g.turn]} · ${_moveLabel(move)}';
       g.play(move, botAnalysis: _movingAnalysis);
       _movingAnalysis = null;
       _moving = null;
       _showingFinalMove = g.phase == Phase.results;
+      if (leftovers.isNotEmpty) {
+        _leftoverCards = leftovers;
+        final recipients = [
+          for (var s = 0; s < 4; s++)
+            if (s % 2 == g.lastCaptureTeam) s
+        ]..sort((a, b) => (g.lastCaptures[b]?.turn ?? -1)
+            .compareTo(g.lastCaptures[a]?.turn ?? -1));
+        _leftoverSeat = recipients.first;
+        _lastAction =
+            '${seatNames[_leftoverSeat]} collects ${leftovers.length} leftover cards · ${pointsOf(leftovers)} points · No sweep';
+      }
     });
+    if (_leftoverCards.isNotEmpty) {
+      _motion.duration = const Duration(seconds: 3);
+      _motion.forward(from: 0);
+    }
   }
 
   void _togglePause() {
@@ -161,7 +195,7 @@ class _SweepScreenState extends State<SweepScreen>
     if (_paused) {
       _botTimer?.cancel();
       _motion.stop();
-    } else if (_moving != null) {
+    } else if (_moving != null || _leftoverCards.isNotEmpty) {
       _motion.forward();
     } else {
       _scheduleBot();
@@ -206,7 +240,9 @@ class _SweepScreenState extends State<SweepScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
     if (_foreground) {
-      if (_moving != null && !_paused && !_atHome) {
+      if ((_moving != null || _leftoverCards.isNotEmpty) &&
+          !_paused &&
+          !_atHome) {
         _motion.forward();
       } else {
         _scheduleBot();
@@ -238,6 +274,7 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _scheduleBot() {
     _botTimer?.cancel();
+    if (_leftoverCards.isNotEmpty) return;
     final g = _game;
     if (mounted &&
         _foreground &&
@@ -324,6 +361,7 @@ class _SweepScreenState extends State<SweepScreen>
     _motion.stop();
     _moving = null;
     _showingFinalMove = false;
+    _leftoverCards = [];
     _selectedCard = null;
     _preview = null;
     _save();
@@ -534,7 +572,7 @@ class _SweepScreenState extends State<SweepScreen>
                         child: const Text('New game')),
                     const SizedBox(height: 16),
                     const Text(
-                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.6',
+                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.7',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))

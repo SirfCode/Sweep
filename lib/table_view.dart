@@ -168,12 +168,17 @@ extension _TableView on _SweepScreenState {
             final rank = rankOf(a).compareTo(rankOf(b));
             return rank == 0 ? a.compareTo(b) : rank;
           });
-        Widget seat(int s) => PlayerSeat(
-            seat: s,
-            count: g.hands[s].length,
-            active: g.turn == s,
-            dealer: g.dealer == s,
-            compact: tight);
+        Widget seat(int s) => Tooltip(
+            message: '${seatNames[s]} · latest capture',
+            child: InkWell(
+                key: Key('last-capture-player-$s'),
+                onTap: () => _showLastCapture(s),
+                child: PlayerSeat(
+                    seat: s,
+                    count: g.hands[s].length,
+                    active: g.turn == s,
+                    dealer: g.dealer == s,
+                    compact: tight)));
         final side = 46.0;
         final top = 60.0;
         final bottom = 30.0;
@@ -277,18 +282,30 @@ extension _TableView on _SweepScreenState {
                             bottom: 4,
                             right: 8,
                             child: Tooltip(
-                                message: 'Your remaining cards',
-                                child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.style_outlined,
-                                          color: cream, size: 12),
-                                      const SizedBox(width: 3),
-                                      Text('${g.hands[0].length}',
-                                          key: const Key('cards-left-0'),
-                                          style: const TextStyle(
-                                              color: cream, fontSize: 11)),
-                                    ]))),
+                                message: 'Your latest capture · tap to view',
+                                child: InkWell(
+                                    key: const Key('last-capture-player-0'),
+                                    onTap: () => _showLastCapture(0),
+                                    child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 6, horizontal: 4),
+                                        child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text('You  ',
+                                                  style: TextStyle(
+                                                      color: cream,
+                                                      fontSize: 11)),
+                                              const Icon(Icons.style_outlined,
+                                                  color: cream, size: 12),
+                                              const SizedBox(width: 3),
+                                              Text('${g.hands[0].length}',
+                                                  key:
+                                                      const Key('cards-left-0'),
+                                                  style: const TextStyle(
+                                                      color: cream,
+                                                      fontSize: 11)),
+                                            ]))))),
                         Positioned(
                             top: top,
                             bottom: bottom,
@@ -394,6 +411,9 @@ extension _TableView on _SweepScreenState {
                         if (_moving != null)
                           Positioned.fill(
                               child: IgnorePointer(child: _flight(g))),
+                        if (_leftoverCards.isNotEmpty)
+                          Positioned.fill(
+                              child: IgnorePointer(child: _leftoverFlight())),
                         if (_paused)
                           Positioned.fill(
                               child: IgnorePointer(
@@ -456,11 +476,58 @@ extension _TableView on _SweepScreenState {
                 child: Column(children: sections)));
       });
 
+  Widget _leftoverFlight() => AnimatedBuilder(
+      animation: _motion,
+      builder: (context, _) => LayoutBuilder(builder: (context, box) {
+            final t = _motion.value;
+            // Hold the remaining cards in view before gathering them to the winner.
+            final travel =
+                Curves.easeInOut.transform(((t - .4) / .6).clamp(0.0, 1.0));
+            final destination = switch (_leftoverSeat) {
+              0 => const Offset(.5, .94),
+              1 => const Offset(.94, .5),
+              2 => const Offset(.5, .06),
+              _ => const Offset(.06, .5),
+            };
+            final position =
+                Offset.lerp(const Offset(.5, .5), destination, travel)!;
+            final spread =
+                (box.maxWidth - 130).clamp(0.0, 260.0) * (1 - travel);
+            return Stack(key: const Key('leftover-flight'), children: [
+              for (var i = 0; i < _leftoverCards.length; i++)
+                Positioned(
+                  left: (position.dx * (box.maxWidth - 72) +
+                          (_leftoverCards.length > 1
+                                  ? i / (_leftoverCards.length - 1) - .5
+                                  : 0) *
+                              spread)
+                      .clamp(
+                          0.0, (box.maxWidth - 72).clamp(0.0, double.infinity)),
+                  top: position.dy *
+                      (box.maxHeight - 102).clamp(0.0, double.infinity),
+                  child: TableCard(card: _leftoverCards[i]),
+                ),
+              Align(
+                  alignment: const Alignment(0, -.8),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                        color: ink, borderRadius: BorderRadius.circular(12)),
+                    child: Text(
+                        'Leftover cards → ${seatNames[_leftoverSeat]}\n${pointsOf(_leftoverCards)} points · No sweep',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: cream)),
+                  )),
+            ]);
+          }));
+
   Widget _flight(SweepGame game) {
     final move = _moving!;
     final affected = game.position.affectedCards(move);
     final capture = move.kind == MoveKind.capture;
     final sweep = capture &&
+        game.plays < 47 &&
         move.selectedLoose.length == game.loose.length &&
         move.houseIndexes.length == game.houses.length;
     final origin = switch (game.turn) {
@@ -540,6 +607,7 @@ extension _TableView on _SweepScreenState {
                                     Icon(Icons.auto_awesome, color: gold),
                                     SizedBox(width: 8),
                                     Text('SWEEP',
+                                        key: Key('sweep-celebration'),
                                         style: TextStyle(
                                             color: gold,
                                             fontFamily: 'Georgia',
@@ -694,6 +762,49 @@ extension _TableView on _SweepScreenState {
               child: Text(_moveLabel(move))),
         ]));
   }
+
+  Future<void> _showLastCapture(int seat) => _overlay(() => showDialog<void>(
+      context: context,
+      builder: (context) {
+        final capture = _game!.lastCaptures[seat];
+        return AlertDialog(
+          title: Text('${seatNames[seat]} · Latest capture'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: capture == null
+                  ? const Text('No capture recorded in this deal yet.')
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                          Text('${pointsOf(capture.cards)} card points',
+                              key: const Key('last-capture-points'),
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          if (capture.sweepPoints > 0)
+                            Text(
+                                '+${capture.sweepPoints} sweep bonus (requires 20 team card points)'),
+                          const SizedBox(height: 16),
+                          Wrap(spacing: 8, runSpacing: 10, children: [
+                            for (final card in capture.cards)
+                              CardFace(
+                                  key: Key('last-capture-card-$card'),
+                                  card: card),
+                          ]),
+                          const SizedBox(height: 12),
+                          Text(
+                              'Turn ${capture.turn} · Includes the card played.'),
+                        ]),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'))
+          ],
+        );
+      }));
 
   Future<void> _inspectHouse(House house) => _overlay(() => showDialog<void>(
       context: context,
