@@ -577,26 +577,32 @@ extension _TableView on _SweepScreenState {
                               top: _selectedCard == card
                                   ? 0
                                   : 10 +
-                                      (hand.indexOf(card) -
-                                              (hand.length - 1) / 2)
+                                      (hand.indexOf(card) - (hand.length - 1) / 2)
                                           .abs(),
                               child: Transform.rotate(
                                   angle: (hand.indexOf(card) -
                                           (hand.length - 1) / 2) *
                                       .009,
-                                  child: CardFace(
-                                      key: Key('hand-$card'),
-                                      card: card,
-                                      large: true,
-                                      highlighted: _selectedCard == card,
-                                      onTap: _canPlay &&
-                                              _game!.phase != Phase.call
-                                          ? () => _chooseCard(
-                                              card,
-                                              legal
-                                                  .where((m) => m.card == card)
-                                                  .toList())
-                                          : null))),
+                                  child: Visibility(
+                                      key: Key('hand-visibility-$card'),
+                                      visible: !(_game!.turn == 0 &&
+                                          _moving?.card == card),
+                                      maintainSize: true,
+                                      maintainState: true,
+                                      maintainAnimation: true,
+                                      child: CardFace(
+                                          key: Key('hand-$card'),
+                                          card: card,
+                                          large: true,
+                                          highlighted: _selectedCard == card,
+                                          onTap: _canPlay &&
+                                                  _game!.phase != Phase.call
+                                              ? () => _chooseCard(
+                                                  card,
+                                                  legal
+                                                      .where((m) => m.card == card)
+                                                      .toList())
+                                              : null)))),
                       ])));
             }));
 

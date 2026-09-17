@@ -287,8 +287,17 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final prefs = await launch(tester, const Size(1000, 800));
     await select(tester, prefs);
+    final selected = tester
+        .widgetList<CardFace>(find.byType(CardFace))
+        .firstWhere(
+            (card) => card.highlighted && card.key.toString().contains('hand-'))
+        .card;
+    final visibility = find.byKey(Key('hand-visibility-$selected'));
+    expect(tester.widget<Visibility>(visibility).visible, isTrue);
     await tester.tap(find.byKey(const Key('confirm-move')));
     await tester.pump();
+    expect(tester.widget<Visibility>(visibility).visible, isFalse);
+    expect(tester.widget<Visibility>(visibility).maintainSize, isTrue);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.byTooltip('Game menu'));
     await tester.pumpAndSettle();

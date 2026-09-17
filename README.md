@@ -2,7 +2,17 @@
 
 An offline Flutter card game planned for Android first, then iPhone. One human and a bot partner play against two bots. SWEEP_RULES.md is the authoritative rules reference; MOBILE_GAME_PLAN.md describes the proposed interface and milestones.
 
-## Version 0.5 — free guest play
+## Bot strategy (development)
+
+The deal log offers **Review completed-deal decisions** after recorded deals finish. Each record includes the acting player's hand, public table and captured cards, legal moves with capture points, the chosen action, and the bot seed. **Copy diagnostics** copies the report for analysis. Records stay local with the save; the current and previous deal are retained. Current-deal hands stay hidden in the UI, and simulated moves produce no records. Older moves made before this feature cannot be reconstructed from the short textual log.
+
+All three bots use the same policy. They remember public captured cards, table cards, calls, house commitments, hand counts and scores, and see only their own hand. A called or promised rank remains known after a house disappears, until its owner plays that rank. A surviving house can prove another copy remains. This evidence persists in saves and constrains every sampled hand; bots never receive the real deck or another player's hand. Older saves recover evidence from recorded public actions where available, never from diagnostic hands; missing history stays unknown.
+
+Each decision compares up to seven candidate moves across four plausible unseen-card distributions. A certain immediate opponent sweep is excluded when a zero-risk move exists. Simulations follow both opponents and the partner for one round; in the final ten plays, team minimax explores alternative replies with a budget of 160 expanded nodes per candidate/world, then uses tactical rollouts to final scoring. Evaluation considers team points, sweep eligibility, house ownership, leftovers and match victory; a substantial match lead increases caution. Search is approximate and uses guessed hands, not exhaustive hidden-information solving. The opening-call policy still favours duplicate high ranks. Completed-deal diagnostics also record the decision reason, public rank evidence, candidate scores, sweep risks and excluded giveaways.
+
+Run `dart run tool/benchmark_bots.dart 100` to reproduce 200 paired deals against the preserved original policy, using seeds 700–799 and alternating teams/dealers. Public-memory policy measurement: 180 wins, 19 losses, 1 tie, mean score margin +156.01; sweeps 753 versus 41. The previous sampled policy measured 179 wins, 21 losses, margin +146.51 and sweeps 750 versus 59 against the same baseline. Decision latency was 18.2 ms at the 95th percentile and 147.7 ms maximum on the development machine; browser and device performance may differ. These measure strength against the original policy, not against human players or a direct match between policy revisions.
+
+## Version 0.6 — stronger bots, free guest play
 
 This release is the free guest version: play without signing in, against three bots. Progress is saved locally on the current device/browser; no account is required.
 
@@ -24,7 +34,7 @@ Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` recei
 
 Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.
 
-Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.5.0` on `codex/0.2-table-ui`; the package version is `0.5.0+5`.
+Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.6.0` on `codex/0.2-table-ui`; the package version is `0.6.0+6`.
 
 ## Run on the configured emulator
 
@@ -51,4 +61,4 @@ To use an existing browser window, run `flutter run -d web-server --web-hostname
 
 ## Remaining polish
 
-The bots use an initial tactical policy, not advanced search or difficulty levels. The app still needs human playtesting, a guided tutorial, richer animation and audio, accessibility review, final artwork, iPhone packaging, and release preparation. This is a playable development build, not a store release.
+The bots use bounded sampled search; difficulty levels are not yet implemented. The app still needs human playtesting, a guided tutorial, richer animation and audio, accessibility review, final artwork, iPhone packaging, and release preparation. This is a playable development build, not a store release.

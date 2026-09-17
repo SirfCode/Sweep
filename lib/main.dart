@@ -122,11 +122,14 @@ class _SweepScreenState extends State<SweepScreen>
     }
   }
 
-  void _play(Move move) {
+  Map<String, dynamic>? _movingAnalysis;
+
+  void _play(Move move, {Map<String, dynamic>? analysis}) {
     if (_paused || _moving != null) return;
     _botTimer?.cancel();
     setState(() {
       _moving = move;
+      _movingAnalysis = analysis;
       _selectedCard = null;
       _preview = null;
       _lastAction = null;
@@ -146,7 +149,8 @@ class _SweepScreenState extends State<SweepScreen>
       _lastAction = clear
           ? '${seatNames[g.turn]} · Sweep!${g.plays == 47 ? '' : ' +${g.plays == 0 ? 25 : 50} pending'}'
           : '${seatNames[g.turn]} · ${_moveLabel(move)}';
-      g.play(move);
+      g.play(move, botAnalysis: _movingAnalysis);
+      _movingAnalysis = null;
       _moving = null;
       _showingFinalMove = g.phase == Phase.results;
     });
@@ -270,7 +274,8 @@ class _SweepScreenState extends State<SweepScreen>
           _lastAction = '${seatNames[g.turn]} calls ${g.calledValue}';
         });
       } else {
-        _play(bot.chooseMove(g.position));
+        final move = bot.chooseMove(g.position);
+        _play(move, analysis: bot.lastAnalysis);
       }
     });
   }
@@ -353,6 +358,38 @@ class _SweepScreenState extends State<SweepScreen>
                 const Padding(
                     padding: EdgeInsets.all(20),
                     child: Text('Deal log', style: TextStyle(fontSize: 22))),
+                if (_game!.reviewableDecisions.isNotEmpty)
+                  TextButton.icon(
+                    icon: const Icon(Icons.analytics_outlined),
+                    label: const Text('Review completed-deal decisions'),
+                    onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (dialogContext) {
+                          final report = const JsonEncoder.withIndent('  ')
+                              .convert(_game!.reviewableDecisions);
+                          return AlertDialog(
+                            title: const Text('Decision diagnostics'),
+                            content: SizedBox(
+                                width: 640,
+                                child: SingleChildScrollView(
+                                    child: SelectableText(report))),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Clipboard.setData(
+                                      ClipboardData(text: report)),
+                                  child: const Text('Copy diagnostics')),
+                              TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Close')),
+                            ],
+                          );
+                        }),
+                  ),
+                const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                        'Hands and decision details become available after the deal.',
+                        style: TextStyle(fontSize: 12))),
                 Expanded(
                     child: ListView(
                         children: _game!.history.reversed
@@ -497,7 +534,7 @@ class _SweepScreenState extends State<SweepScreen>
                         child: const Text('New game')),
                     const SizedBox(height: 16),
                     const Text(
-                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.5',
+                        'Choose a card. Light up the table.\nYour seat is waiting. • v0.6',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))

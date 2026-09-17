@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0
+
+- Retain public rank evidence from calls and houses until played; constrain sampled hands with that evidence and migrate older diagnostic saves without reading hidden hands.
+- Avoid certain immediate sweep giveaways when a safe move exists; search opponent and partner replies through scoring in the last ten plays with a bounded minimax budget.
+- Include decision reasons, known ranks, candidate evaluations and excluded sweep giveaways in completed-deal diagnostics; add Ari's reported position and public-memory regression tests.
+- Save per-move decision diagnostics (actor hand, public table/captures, legal alternatives and bot seed), with copyable review after a deal ends; retain two deals and support older saves.
+- Evaluate immediate sweep exposure across all unseen ranks, and include the safest legal option in the search shortlist.
+- Hide the played card in the human hand during flight, preserving its layout space until the move completes.
+- Prefer higher-scoring suits in otherwise identical rank captures; prevent speculative look-ahead from choosing a non-scoring seven over 7-spade.
+- Strengthen all bots with sampled hidden-card look-ahead, public capture memory, house-commitment constraints, partnership evaluation, sweep eligibility and endgame scoring.
+- Add reproducible old-versus-new bot comparisons and fairness/save-resume tests.
+
 ## 0.5.0
 
 - Free guest play without login, with local save/resume.
