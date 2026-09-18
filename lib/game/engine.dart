@@ -17,11 +17,25 @@ String rankName(int rank) => switch (rank) {
     };
 String cardName(int card) =>
     '${rankName(rankOf(card))}${['♣', '♦', '♥', '♠'][card ~/ 13]}';
-const seatNames = ['You', 'Mira', 'Ari', 'Dev'];
+const seatNames = ['You', 'Nishu', 'Shak', 'JLo'];
 
 enum Phase { call, opening, playing, results }
 
 enum MoveKind { capture, build, raise, discard }
+
+/// Public cards won by one player on their most recent capturing turn.
+class LastCapture {
+  final List<int> cards;
+  final int turn, sweepPoints;
+  LastCapture(Iterable<int> cards, this.turn, this.sweepPoints)
+      : cards = List.unmodifiable(cards);
+  Map<String, dynamic> toJson() =>
+      {'cards': cards, 'turn': turn, 'sweepPoints': sweepPoints};
+  factory LastCapture.fromJson(Map<String, dynamic> json) => LastCapture(
+      List<int>.from(json['cards'] as List),
+      json['turn'] as int,
+      json['sweepPoints'] as int);
+}
 
 class House {
   final int value;
@@ -84,6 +98,16 @@ class Position {
   final Phase phase;
   final int? call;
   final int plays;
+  // Public card memory is reconstructible from the table and capture piles,
+  // so it survives save/resume without recording or exposing hidden hands.
+  final List<List<int>> captured;
+  final List<List<SweepTiming>> sweeps;
+  final List<int> handCounts, totals;
+  final int dealer;
+  final int? lastCaptureTeam;
+
+  /// Ranks publicly proved to remain in each hand (at least one copy).
+  final List<Set<int>> knownRanks;
   Position(
       {required this.seat,
       required Iterable<int> hand,
@@ -91,10 +115,25 @@ class Position {
       required Iterable<House> houses,
       required this.phase,
       required this.call,
-      required this.plays})
+      required this.plays,
+      Iterable<List<int>> captured = const [[], []],
+      Iterable<List<SweepTiming>> sweeps = const [[], []],
+      Iterable<int> handCounts = const [],
+      Iterable<int> totals = const [0, 0],
+      this.dealer = 0,
+      Iterable<Iterable<int>> knownRanks = const [[], [], [], []],
+      this.lastCaptureTeam})
       : hand = List.unmodifiable(hand),
         loose = List.unmodifiable(loose),
-        houses = List.unmodifiable(houses);
+        houses = List.unmodifiable(houses),
+        captured =
+            List.unmodifiable(captured.map((c) => List<int>.unmodifiable(c))),
+        sweeps = List.unmodifiable(
+            sweeps.map((s) => List<SweepTiming>.unmodifiable(s))),
+        handCounts = List.unmodifiable(handCounts),
+        totals = List.unmodifiable(totals),
+        knownRanks =
+            List.unmodifiable(knownRanks.map((r) => Set<int>.unmodifiable(r)));
 
   List<int> get calls =>
       (hand.map(rankOf).where((r) => r >= 9).toSet().toList()..sort());
@@ -158,9 +197,12 @@ class Position {
             if (houses[i].value == value) i
         ];
         if (rank <= value) {
-          // A played matching card can be added directly to an existing house.
+          // A matching hand card is a complete group by itself. It can join
+          // an existing house or matching loose groups to start a pakka house.
           final bases = rank == value
-              ? (matches.isNotEmpty ? [<int>[]] : <List<int>>[])
+              ? (matches.isNotEmpty || at(value).subsets.isNotEmpty
+                  ? [<int>[]]
+                  : <List<int>>[])
               : _Combinations(loose, value - rank).cardSubsets;
           for (final base in bases) {
             for (final extra in at(value).maximal(excluding: base)) {
@@ -271,6 +313,29 @@ class SweepGame {
   List<int> totals = [0, 0];
   List<int> lastScores = [0, 0];
   List<String> history = [];
+  List<Map<String, dynamic>> historyEvents = [];
+  List<Map<String, dynamic>> decisions = [];
+  List<LastCapture?> lastCaptures = List.filled(4, null);
+  List<Set<int>> knownRanks = List.generate(4, (_) => <int>{});
+
+  void _rememberHouses(Iterable<House> publicHouses) {
+    for (final h in publicHouses) {
+      for (final owner in h.owners) {
+        knownRanks[owner].add(h.value);
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> get reviewableDecisions => decisions
+      .where((d) => (d['deal'] as int) < dealNumber || phase == Phase.results)
+      .toList();
+
+  void _recordDecision(Map<String, dynamic> record) {
+    decisions.add(record);
+    // Retain the current and previous deal, including their opening calls.
+    decisions.removeWhere((d) => (d['deal'] as int) < dealNumber - 1);
+  }
+
   SweepGame._(this.seed, this.dealer);
   factory SweepGame.newGame({int? seed, int? dealer}) {
     final actualSeed = seed ?? DateTime.now().microsecondsSinceEpoch;
@@ -286,12 +351,23 @@ class SweepGame {
       houses: houses,
       phase: phase,
       call: calledValue,
-      plays: plays);
+      plays: plays,
+      captured: captured,
+      sweeps: sweeps,
+      handCounts: hands.map((h) => h.length),
+      totals: totals,
+      dealer: dealer,
+      knownRanks: knownRanks,
+      lastCaptureTeam: lastCaptureTeam);
   DealScore score(int team) =>
       DealScore(cardPoints: pointsOf(captured[team]), sweeps: sweeps[team]);
-  void _log(String message) {
+  void _log(String message,
+      {String? event, Map<String, dynamic> args = const {}}) {
     history.add(message);
+    historyEvents.add(
+        {'text': message, if (event != null) 'event': event, 'args': args});
     if (history.length > 100) history.removeAt(0);
+    if (historyEvents.length > 100) historyEvents.removeAt(0);
   }
 
   List<int> _take(int count) {
@@ -304,6 +380,8 @@ class SweepGame {
     dealNumber++;
     plays = 0;
     calledValue = null;
+    lastCaptures = List.filled(4, null);
+    knownRanks = List.generate(4, (_) => <int>{});
     lastCaptureTeam = null;
     houses = [];
     captured = [[], []];
@@ -320,7 +398,14 @@ class SweepGame {
       retries++;
     } while (!hands[turn].any((c) => rankOf(c) >= 9));
     _log(
-        'Deal $dealNumber • ${seatNames[dealer]} deals. ${seatNames[turn]} calls.${retries > 1 ? ' Reshuffled ${retries - 1} time(s).' : ''}');
+        'Deal $dealNumber • ${seatNames[dealer]} deals. ${seatNames[turn]} calls.${retries > 1 ? ' Reshuffled ${retries - 1} time(s).' : ''}',
+        event: 'dealStart',
+        args: {
+          'deal': dealNumber,
+          'dealer': dealer,
+          'player': turn,
+          'retries': retries - 1
+        });
   }
 
   void call(int value) {
@@ -328,22 +413,72 @@ class SweepGame {
       throw StateError('Call must be a held rank from 9 to 13.');
     }
     calledValue = value;
+    knownRanks[turn].add(value);
+    _recordDecision({
+      'deal': dealNumber,
+      'turn': 0,
+      'player': seatNames[turn],
+      'hand': hands[turn].map(cardName).toList(),
+      'chosen': 'Call $value',
+      'legalCalls': position.calls,
+    });
     for (var offset = 2; offset <= 4; offset++) {
       hands[(dealer + offset) % 4].addAll(_take(4));
     }
     phase = Phase.opening;
-    _log('${seatNames[turn]} calls $value. Table revealed.');
+    _log('${seatNames[turn]} calls $value. Table revealed.',
+        event: 'call', args: {'player': turn, 'value': value});
   }
 
-  void play(Move proposed) {
+  void play(Move proposed,
+      {bool recordDiagnostic = true, Map<String, dynamic>? botAnalysis}) {
     final before = position;
-    final move =
-        before.legalMoves().where((m) => m.key == proposed.key).firstOrNull;
+    final legal = before.legalMoves();
+    final move = legal.where((m) => m.key == proposed.key).firstOrNull;
     if (move == null) {
       throw StateError('That move is not legal in this position.');
     }
     final actor = turn;
     final affected = before.affectedCards(move);
+    if (recordDiagnostic) {
+      Map<String, dynamic> describe(Move m) => {
+            'key': m.key,
+            'action': m.title,
+            'targets': before.affectedCards(m).map(cardName).toList(),
+            'cardPoints': m.kind == MoveKind.capture
+                ? pointsOf([m.card, ...before.affectedCards(m)])
+                : 0,
+          };
+      _recordDecision({
+        'deal': dealNumber,
+        'turn': plays + 1,
+        'player': seatNames[actor],
+        'botSeed': actor == 0 ? null : seed + dealNumber * 53 + plays,
+        'policy': 'sampled-v3-public-memory',
+        if (botAnalysis != null) 'analysis': botAnalysis,
+        'hand': before.hand.map(cardName).toList(),
+        'table': before.loose.map(cardName).toList(),
+        'chosen': describe(move),
+        'alternatives': legal.map(describe).toList(),
+        'position': {
+          'seat': actor,
+          'hand': before.hand,
+          'loose': before.loose,
+          'houses': before.houses.map((h) => h.toJson()).toList(),
+          'captured': before.captured,
+          'handCounts': before.handCounts,
+          'sweeps':
+              before.sweeps.map((s) => s.map((t) => t.name).toList()).toList(),
+          'totals': before.totals,
+          'phase': before.phase.name,
+          'call': before.call,
+          'plays': before.plays,
+          'dealer': dealer,
+          'knownRanks': before.knownRanks.map((r) => r.toList()).toList(),
+          'lastCaptureTeam': lastCaptureTeam,
+        },
+      });
+    }
     hands[actor].remove(move.card);
     loose.removeWhere(move.selectedLoose.contains);
     final remainingHouses = [
@@ -353,24 +488,52 @@ class SweepGame {
     switch (move.kind) {
       case MoveKind.discard:
         loose.add(move.card);
-        _log('${seatNames[actor]} places ${cardName(move.card)}.');
+        _log('${seatNames[actor]} places ${cardName(move.card)}.',
+            event: 'discard',
+            args: {'player': actor, 'card': cardName(move.card)});
       case MoveKind.capture:
+        lastCaptures[actor] = LastCapture(
+            [move.card, ...affected],
+            plays + 1,
+            loose.isEmpty && remainingHouses.isEmpty
+                ? (plays == 0
+                    ? 25
+                    : plays == 47
+                        ? 0
+                        : 50)
+                : 0);
         captured[actor % 2].addAll([move.card, ...affected]);
         lastCaptureTeam = actor % 2;
         _log(
             '${seatNames[actor]} captures ${affected.map(cardName).join(' ')} with ${cardName(move.card)} (${pointsOf([
-              move.card,
-              ...affected
-            ])} card points).');
+                  move.card,
+                  ...affected
+                ])} card points).',
+            event: 'capture',
+            args: {
+              'player': actor,
+              'cards': affected.map(cardName).join(' '),
+              'card': cardName(move.card),
+              'points': pointsOf([move.card, ...affected])
+            });
         if (loose.isEmpty && remainingHouses.isEmpty) {
           final timing = plays == 0
               ? SweepTiming.opening
               : plays == 47
                   ? SweepTiming.finalPlay
                   : SweepTiming.intermediate;
-          sweeps[actor % 2].add(timing);
-          _log(
-              '${seatNames[actor]} clears the table • ${sweepBonus(timing)} provisional sweep points.');
+          if (timing == SweepTiming.finalPlay) {
+            _log(
+                '${seatNames[actor]} clears the table on the final play; no seep bonus.',
+                event: 'finalClear',
+                args: {'player': actor});
+          } else {
+            sweeps[actor % 2].add(timing);
+            _log(
+                '${seatNames[actor]} clears the table • ${sweepBonus(timing)} provisional seep points.',
+                event: 'clear',
+                args: {'player': actor, 'points': sweepBonus(timing)});
+          }
         }
       case MoveKind.build:
       case MoveKind.raise:
@@ -388,9 +551,21 @@ class SweepGame {
         final house = House(move.value, groups, before.resultingOwners(move));
         remainingHouses.add(house);
         _log(
-            '${seatNames[actor]} ${move.kind == MoveKind.raise ? 'raises to' : 'builds / adds to'} ${move.value} with ${cardName(move.card)}${house.pakka ? ' • pakka' : ''}.');
+            '${seatNames[actor]} ${move.kind == MoveKind.raise ? 'raises to' : 'builds / adds to'} ${move.value} with ${cardName(move.card)}${house.pakka ? ' • pakka' : ''}.',
+            event: 'build',
+            args: {
+              'player': actor,
+              'raise': move.kind == MoveKind.raise,
+              'value': move.value,
+              'card': cardName(move.card),
+              'pakka': house.pakka
+            });
     }
     houses = remainingHouses;
+    // A played rank consumes our one guaranteed copy. Surviving/new houses
+    // can prove another copy; a removed house does not erase unplayed evidence.
+    knownRanks[actor].remove(rankOf(move.card));
+    _rememberHouses(houses);
     plays++;
     if (phase == Phase.opening) {
       for (var round = 0; round < 2; round++) {
@@ -399,7 +574,7 @@ class SweepGame {
         }
       }
       phase = Phase.playing;
-      _log('Remaining cards dealt.');
+      _log('Remaining cards dealt.', event: 'dealt');
     }
     turn = (turn + 1) % 4;
     if (plays == 48) _finishDeal();
@@ -413,7 +588,9 @@ class SweepGame {
       }
       captured[lastCaptureTeam!].addAll(loose);
       _log(
-          'Remaining table cards go to ${lastCaptureTeam == 0 ? 'your team' : 'opponents'}; no sweep bonus.');
+          'Remaining table cards go to ${lastCaptureTeam == 0 ? 'your team' : 'opponents'}; no seep bonus.',
+          event: 'leftovers',
+          args: {'team': lastCaptureTeam});
       loose = [];
     }
     lastScores = [score(0).total, score(1).total];
@@ -422,7 +599,9 @@ class SweepGame {
     }
     winner = winningTeamAfterDeal(totals[0], totals[1]);
     phase = Phase.results;
-    _log('Deal $dealNumber scored: ${lastScores[0]} – ${lastScores[1]}.');
+    _log('Deal $dealNumber scored: ${lastScores[0]} – ${lastScores[1]}.',
+        event: 'scored',
+        args: {'deal': dealNumber, 'us': lastScores[0], 'them': lastScores[1]});
   }
 
   (int, int) get nextDealer {
@@ -519,6 +698,10 @@ class SweepGame {
         'totals': totals,
         'lastScores': lastScores,
         'history': history,
+        'historyEvents': historyEvents,
+        'decisions': decisions,
+        'lastCaptures': lastCaptures.map((c) => c?.toJson()).toList(),
+        'knownRanks': knownRanks.map((r) => r.toList()).toList(),
       };
   factory SweepGame.fromJson(Map<String, dynamic> j) {
     if (j['version'] != 1) {
@@ -545,11 +728,83 @@ class SweepGame {
     g.sweeps = (j['sweeps'] as List)
         .map((s) => (s as List)
             .map((t) => SweepTiming.values.byName(t as String))
+            .where((timing) => timing != SweepTiming.finalPlay)
             .toList())
         .toList();
     g.totals = List<int>.from(j['totals'] as List);
     g.lastScores = List<int>.from(j['lastScores'] as List);
     g.history = List<String>.from(j['history'] as List);
+    g.historyEvents = j['historyEvents'] is List
+        ? (j['historyEvents'] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList()
+        : g.history.map((s) => <String, dynamic>{'text': s}).toList();
+    g.decisions = ((j['decisions'] as List?) ?? [])
+        .map((d) => Map<String, dynamic>.from(d as Map))
+        .toList();
+    if (j['lastCaptures'] case final List captures) {
+      g.lastCaptures = captures
+          .map((c) => c == null
+              ? null
+              : LastCapture.fromJson(Map<String, dynamic>.from(c as Map)))
+          .toList();
+    } else {
+      // Older diagnostic saves contain all public capture targets. Never use
+      // recorded hidden hands, and never mistake end-of-deal leftovers for a turn.
+      for (final d in g.decisions
+          .where((d) => d['deal'] == g.dealNumber && d['turn'] != 0)) {
+        final chosen = d['chosen'] as Map;
+        final key = (chosen['key'] as String).split('/');
+        if (key.first != 'capture') continue;
+        final actor = seatNames.indexOf(d['player'] as String);
+        if (actor < 0) continue;
+        final cards = [
+          int.parse(key[1]),
+          for (final name in chosen['targets'] as List)
+            for (var c = 0; c < 52; c++)
+              if (cardName(c) == name) c
+        ];
+        final p = d['position'] as Map;
+        final tableCount = (p['loose'] as List).length +
+            (p['houses'] as List).fold<int>(
+                0,
+                (n, h) =>
+                    n +
+                    House.fromJson(Map<String, dynamic>.from(h as Map))
+                        .cards
+                        .length);
+        final turn = d['turn'] as int;
+        g.lastCaptures[actor] = LastCapture(
+            cards,
+            turn,
+            cards.length - 1 == tableCount && turn < 48
+                ? (turn == 1 ? 25 : 50)
+                : 0);
+      }
+    }
+    if (j['knownRanks'] case final List ranks) {
+      g.knownRanks = ranks.map((r) => Set<int>.from(r as List)).toList();
+    } else {
+      // Migrate older saves using public actions only, never recorded hands.
+      for (final d in g.decisions.where((d) => d['deal'] == g.dealNumber)) {
+        final actor = seatNames.indexOf(d['player'] as String);
+        if (actor < 0) continue;
+        if (d['turn'] == 0) {
+          final value = int.tryParse('${d['chosen']}'.split(' ').last);
+          if (value != null) g.knownRanks[actor].add(value);
+        } else {
+          final p = d['position'] as Map?;
+          if (p != null) {
+            g._rememberHouses((p['houses'] as List).map(
+                (h) => House.fromJson(Map<String, dynamic>.from(h as Map))));
+          }
+          final chosen = d['chosen'] as Map;
+          final card = int.parse((chosen['key'] as String).split('/')[1]);
+          g.knownRanks[actor].remove(rankOf(card));
+        }
+      }
+    }
+    g._rememberHouses(g.houses);
     g.validate();
     return g;
   }

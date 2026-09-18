@@ -1,6 +1,6 @@
-# Sweep mobile game — first playable specification
+# Seep mobile game — first playable specification
 
-Status: Proposed scope, based on SWEEP_RULES.md version 1.0.
+Status: Proposed scope, based on SEEP_RULES.md version 1.0.
 
 ## Experience
 
@@ -11,8 +11,8 @@ The first version runs offline, without accounts or a server. It supports comple
 ## Screen flow
 
 1. Home: New game, Resume when a save exists, How to play, and Settings.
-2. Table: Deal and opening call, normal turns, captures, houses, and sweep feedback.
-3. Deal results: Card points, earned and disallowed sweep bonuses, deal totals, cumulative scores, and the next dealer with their rotation count.
+2. Table: Deal and opening call, normal turns, captures, houses, and seep feedback.
+3. Deal results: Card points, earned and disallowed seep bonuses, deal totals, cumulative scores, and the next dealer with their rotation count.
 4. Game results: Winning team once the completed-deal margin reaches 104, with Play again and Home actions.
 
 Settings initially cover sound and reduced motion. A short optional tutorial explains card points versus rank values, houses, commitments, and team play.
@@ -24,7 +24,7 @@ Use a landscape-first prototype to give the shared table and hand space; validat
 - Keep the human hand visible and selectable, with an enlarged card preview when needed.
 - Show bot hand counts, team labels, dealer, and active turn without exposing bot cards.
 - Show loose cards separately from houses. Each house displays its declared value, ordinary or pakka status, and the players committed to it. Tapping reveals its component combinations.
-- Display cumulative team scores and the current deal's captured card points. Mark sweep bonuses as provisional until scoring confirms the 20-card-point requirement.
+- Display cumulative team scores and the current deal's captured card points. Mark seep bonuses as provisional until scoring confirms the 20-card-point requirement.
 - Selecting a hand card exposes legal Capture, Build/Contribute, Raise, or Discard actions. Present the selected result before a confirm tap commits the turn.
 - Where capture combinations overlap, let the player choose among legal outcomes and preview exactly what will remain. Include every additional non-overlapping match required by the rules; do not silently force the outcome with the most cards or points.
 - For a build or raise, offer valid target values and preview the resulting house, absorbed combinations, and commitments.
@@ -33,7 +33,7 @@ Use a landscape-first prototype to give the shared table and hand space; validat
 
 ## Rules engine
 
-Keep game rules independent of graphics and animation. Represent cards, fixed seats and teams, dealer, deal phase, hands, loose cards, indivisible houses and their groups, commitments, captures, sweep events, cumulative scores, and dealer loss/tie count explicitly.
+Keep game rules independent of graphics and animation. Represent cards, fixed seats and teams, dealer, deal phase, hands, loose cards, indivisible houses and their groups, commitments, captures, seep events, cumulative scores, and dealer loss/tie count explicitly.
 
 Implement a legal-action generator and one validated action application path shared by human controls and bots. Capture and building choices must enumerate maximal non-overlapping outcomes, not merely maximum-size outcomes: no further valid match may remain, but overlapping alternatives are freely selectable.
 
@@ -45,7 +45,7 @@ Support seeded shuffles and action logs for reproducible debugging. Keep random 
 
 All three bots use the same legal-action engine. Their decision input contains only their own cards, public table and commitment information, and observable play history. Hidden hands and the future deck order are unavailable to the decision policy, including the partner's hand.
 
-Start with a baseline bot that always completes legal games. Then add a standard strategy that weighs captured points, sweep opportunities and exposure, retaining useful capture cards, house commitments, and partner support. Partnership coordination uses public information only.
+Start with a baseline bot that always completes legal games. Then add a standard strategy that weighs captured points, seep opportunities and exposure, retaining useful capture cards, house commitments, and partner support. Partnership coordination uses public information only.
 
 Difficulty selection and more advanced search follow after the standard bot is reliable. Any future simulation must sample plausible unseen cards rather than inspect actual hidden hands.
 
@@ -53,9 +53,9 @@ Difficulty selection and more advanced search follow after the standard bot is r
 
 ### 1. Rules foundation
 
-Implement and verify dealing, opening restrictions, capture alternatives, ordinary and pakka houses, commitment transfers/releases, raising, sweeps, scoring, and dealer rotation.
+Implement and verify dealing, opening restrictions, capture alternatives, ordinary and pakka houses, commitment transfers/releases, raising, seeps, scoring, and dealer rotation.
 
-Acceptance: automated full bot games terminate legally; every card exists in exactly one location; each deal accounts for all 52 cards and exactly 100 card points; no house survives deal completion. Focused rule examples verify overlapping captures, teammate contributions without a matching card, multiple commitments, first/final-play sweep timing, the 20-point eligibility threshold, 104-point winning margin, and third loss/tie dealer changes.
+Acceptance: automated full bot games terminate legally; every card exists in exactly one location; each deal accounts for all 52 cards and exactly 100 card points; no house survives deal completion. Focused rule examples verify overlapping captures, teammate contributions without a matching card, multiple commitments, first/final-play seep timing, the 20-point eligibility threshold, 104-point winning margin, and third loss/tie dealer changes.
 
 ### 2. First playable interface
 

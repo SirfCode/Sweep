@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sweep/game/engine.dart';
 import 'package:sweep/game/bot.dart';
+import 'fixtures.dart';
 
 int c(int rank, [int suit = 0]) => suit * 13 + rank - 1;
 Position position(List<int> hand, List<int> loose,
@@ -20,6 +21,51 @@ Position position(List<int> hand, List<int> loose,
         plays: 5);
 
 void main() {
+  test('two held tens can build a new pakka ten with a loose ten', () {
+    for (final played in [22, 48]) {
+      final game = twoTensGame();
+      final moves =
+          game.position.legalMoves().where((m) => m.card == played).toList();
+      expect(moves.any((m) => m.kind == MoveKind.capture), isTrue);
+      final build =
+          moves.singleWhere((m) => m.kind == MoveKind.build && m.value == 10);
+      game.play(build);
+      game.validate();
+      final house = game.houses.singleWhere((h) => h.value == 10);
+      expect(house.pakka, isTrue);
+      expect(house.groups, [
+        [played],
+        [9]
+      ]);
+      expect(house.owners, {0});
+      expect(game.hands[0], contains(played == 22 ? 48 : 22));
+      expect(game.loose, [17]);
+      expect(game.houses.any((h) => h.value == 13 && h.owners.contains(1)),
+          isTrue);
+    }
+  });
+  test(
+      'matching-rank new house absorbs loose combinations and obeys commitments',
+      () {
+    final p = position([c(10, 1), c(10, 3)], [c(10), c(6), c(4), c(5)]);
+    final build = p.legalMoves().firstWhere((m) => m.kind == MoveKind.build);
+    expect(build.selectedLoose, {c(10), c(6), c(4)});
+    expect(
+        position([c(10, 3)], [c(10)])
+            .legalMoves()
+            .any((m) => m.kind == MoveKind.build),
+        isFalse);
+    expect(
+        position([c(10, 1), c(10, 3)], [])
+            .legalMoves()
+            .any((m) => m.kind == MoveKind.build),
+        isFalse);
+    expect(
+        position([c(10, 1), c(10, 3)], [c(10)], phase: Phase.opening, call: 10)
+            .legalMoves()
+            .any((m) => m.kind == MoveKind.build),
+        isTrue);
+  });
   test('illegal moves cannot mutate a game', () {
     final g = SweepGame.newGame(seed: 9);
     final before = jsonEncode(g.toJson());
@@ -139,6 +185,17 @@ void main() {
     g.validate();
     expect(g.houses, isEmpty);
     expect(g.score(0).earnedSweepPoints, 0);
+    expect(g.sweeps[0], isEmpty);
+    expect(
+        g.historyEvents.any((event) => event['event'] == 'finalClear'), isTrue);
+    final legacy = g.toJson();
+    legacy['sweeps'] = [
+      ['finalPlay'],
+      []
+    ];
+    final restored = SweepGame.fromJson(legacy);
+    expect(restored.sweeps[0], isEmpty);
+    expect(restored.totals, g.totals);
     expect(g.captured[0].toSet(), {played, ...table});
   });
   test('multiple complete games reach the winning margin only after scoring',

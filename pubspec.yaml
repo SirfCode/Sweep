@@ -1,15 +1,19 @@
 name: sweep
-description: Offline partnership Sweep with one human and three bots.
+description: Offline partnership Seep with one human and three bots.
 publish_to: none
-version: 0.1.0+1
+version: 0.10.0+10
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
+  audioplayers: ^6.8.1
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   shared_preferences: ^2.5.5
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_lints: ^6.0.0
@@ -18,5 +22,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: NotoDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari.ttf
   assets:
-    - SWEEP_RULES.md
+    - assets/audio/sfx/
+    - SEEP_RULES.md
+    - SEEP_RULES_HI.md
+    - assets/fonts/OFL-NotoSansDevanagari.txt

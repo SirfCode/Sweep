@@ -1,0 +1,126 @@
+{
+  "button_1.wav": {
+    "sources": [
+      "chip-lay-1.ogg"
+    ],
+    "seconds": 0.067,
+    "peak": 0.455
+  },
+  "button_2.wav": {
+    "sources": [
+      "chip-lay-2.ogg"
+    ],
+    "seconds": 0.054,
+    "peak": 0.455
+  },
+  "deal_1.wav": {
+    "sources": [
+      "card-slide-1.ogg"
+    ],
+    "seconds": 0.109,
+    "peak": 0.65
+  },
+  "play_1.wav": {
+    "sources": [
+      "card-place-1.ogg"
+    ],
+    "seconds": 0.16,
+    "peak": 0.65
+  },
+  "deal_2.wav": {
+    "sources": [
+      "card-slide-2.ogg"
+    ],
+    "seconds": 0.3,
+    "peak": 0.65
+  },
+  "play_2.wav": {
+    "sources": [
+      "card-place-2.ogg"
+    ],
+    "seconds": 0.205,
+    "peak": 0.65
+  },
+  "deal_3.wav": {
+    "sources": [
+      "card-slide-3.ogg"
+    ],
+    "seconds": 0.3,
+    "peak": 0.65
+  },
+  "play_3.wav": {
+    "sources": [
+      "card-place-3.ogg"
+    ],
+    "seconds": 0.225,
+    "peak": 0.65
+  },
+  "capture_1.wav": {
+    "sources": [
+      "card-shove-1.ogg"
+    ],
+    "seconds": 0.45,
+    "peak": 0.65
+  },
+  "capture_2.wav": {
+    "sources": [
+      "card-shove-2.ogg"
+    ],
+    "seconds": 0.45,
+    "peak": 0.65
+  },
+  "sweep.wav": {
+    "sources": [
+      "card-fan-1.ogg",
+      "card-shove-3.ogg"
+    ],
+    "seconds": 0.58,
+    "peak": 0.571
+  },
+  "invalid.wav": {
+    "sources": [
+      "chip-lay-1.ogg",
+      "chip-lay-1.ogg"
+    ],
+    "seconds": 0.209,
+    "peak": 0.455
+  },
+  "turn.wav": {
+    "sources": [
+      "chip-lay-3.ogg"
+    ],
+    "seconds": 0.139,
+    "peak": 0.552
+  },
+  "score.wav": {
+    "sources": [
+      "chip-lay-2.ogg"
+    ],
+    "seconds": 0.054,
+    "peak": 0.455
+  },
+  "round_win.wav": {
+    "sources": [
+      "chip-lay-1.ogg",
+      "chip-lay-2.ogg"
+    ],
+    "seconds": 0.242,
+    "peak": 0.552
+  },
+  "round_lose.wav": {
+    "sources": [
+      "chip-lay-3.ogg"
+    ],
+    "seconds": 0.179,
+    "peak": 0.52
+  },
+  "game_win.wav": {
+    "sources": [
+      "chip-lay-1.ogg",
+      "chip-lay-2.ogg",
+      "chip-lay-3.ogg"
+    ],
+    "seconds": 0.534,
+    "peak": 0.585
+  }
+}
