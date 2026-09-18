@@ -1,0 +1,20 @@
+{
+  "user": {"email": "player@example.com", "displayName": "Player Name"},
+  "clientGameId": "e7779024-fbbc-4296-b81e-fd812a253d80",
+  "appVersion": "0.10.0+10",
+  "platform": "android",
+  "dealCount": 3,
+  "humanTeam": 0,
+  "winnerTeam": 0,
+  "userWon": true,
+  "team0Total": 152,
+  "team1Total": 91,
+  "summary": {
+    "deals": 3,
+    "winnerTeam": 0,
+    "userWon": true,
+    "totals": [152, 91],
+    "seeps": [4, 1],
+    "dealScores": [[74, 21], [38, 52], [40, 18]]
+  }
+}

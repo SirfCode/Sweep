@@ -1,0 +1,43 @@
+const team = { type: 'integer', enum: [0, 1] };
+const total = { type: 'integer', minimum: 0, maximum: 2147483647 };
+export const reportBody = {
+  type: 'object', additionalProperties: false,
+  required: ['user', 'clientGameId', 'dealCount', 'winnerTeam', 'team0Total', 'team1Total'],
+  properties: {
+    user: {
+      type: 'object', additionalProperties: false, required: ['email'],
+      properties: {
+        email: { type: 'string', minLength: 3, maxLength: 254, pattern: '^\\s*[^\\s@]+@[^\\s@]+\\.[^\\s@]+\\s*$' },
+        displayName: { type: ['string', 'null'], maxLength: 100 },
+      },
+    },
+    clientGameId: { type: 'string', minLength: 1, maxLength: 128, pattern: '^\\S+$' },
+    appVersion: { type: ['string', 'null'], maxLength: 64 },
+    platform: { type: ['string', 'null'], maxLength: 32 },
+    dealCount: { type: 'integer', minimum: 1, maximum: 100000 },
+    humanTeam: { ...team, default: 0 },
+    winnerTeam: team,
+    userWon: { type: 'boolean' },
+    team0Total: total, team1Total: total,
+    summary: { type: 'object', default: {}, additionalProperties: true },
+    gameLog: { type: ['object', 'null'], additionalProperties: true },
+  },
+};
+export const userParams = {
+  type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } },
+};
+export const reportsQuery = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
+    offset: { type: 'string', pattern: '^[0-9]{1,7}$', default: '0' },
+    includeGameLog: { type: 'string', enum: ['true', 'false'], default: 'false' },
+  },
+};
+export const statsQuery = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$', default: '10' },
+    minGames: { type: 'string', pattern: '^[1-9][0-9]{0,4}$', default: '1' },
+  },
+};

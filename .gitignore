@@ -10,3 +10,8 @@ android/key.properties
 .idea/
 *.iml
 artifacts/*.log
+node_modules/
+.env
+.env.*
+!.env.example
+backend/.test-postgres/

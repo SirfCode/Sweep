@@ -2,6 +2,12 @@
 
 An offline Flutter card game planned for Android first, then iPhone. One human and a bot partner play against two bots. SEEP_RULES.md is the authoritative rules reference; MOBILE_GAME_PLAN.md describes the proposed interface and milestones.
 
+## Optional completed-game reporting backend
+
+See [Backend and Android upload guide](backend/README.md) for the Render/Postgres
+API, SQL migrations, admin stats and offline retry example. This is prepared for
+integration; the current guest game does not automatically upload reports.
+
 ## Bot strategy (development)
 
 Seep supports English and Hindi. Use the globe button to change language without restarting the deal. See [Language support](LOCALIZATION.md) for terminology, offline resources and compatibility details.

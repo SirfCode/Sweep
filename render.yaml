@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: seep-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: master
+    rootDir: backend
+    buildCommand: npm ci --omit=dev
+    # Startup migrations also work on free web services (no pre-deploy hook).
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: seep-postgres
+          property: connectionString
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: SEEP_UPLOAD_API_KEY
+        sync: false
+
+databases:
+  - name: seep-postgres
+    plan: free
+    region: oregon
+    databaseName: seep
+    user: seep
+    ipAllowList: []
