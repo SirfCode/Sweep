@@ -1,5 +1,7 @@
 // Bundled English and Hindi messages. Placeholder names must match.
 const messageCatalog = {
+  "sound_effects": {"en": "Sound effects", "hi": "ध्वनि प्रभाव"},
+  "sfx_volume": {"en": "Volume", "hi": "आवाज़"},
   "capture": {"en": "Capture", "hi": "उठाएँ"},
   "discard": {"en": "Throw", "hi": "फेंकें"},
   "build": {"en": "Build {p0}", "hi": "{p0} का घर बनाएँ"},
@@ -160,9 +162,9 @@ const messageCatalog = {
     "en": "A good hand.\nA better partnership.",
     "hi": "अच्छे पत्ते।\nबेहतर साझेदारी।"
   },
-  "you_ari_vs_mira_dev": {
-    "en": "You + Ari  vs  Mira + Dev",
-    "hi": "आप + Ari  बनाम  Mira + Dev"
+  "gurubox_presentation": {
+    "en": "GuruBox presentation",
+    "hi": "GuruBox presentation"
   },
   "build_houses_capture_points_and_clear_the": {
     "en":
@@ -173,8 +175,8 @@ const messageCatalog = {
   "view_game_result": {"en": "View game result", "hi": "खेल का परिणाम देखें"},
   "resume_deal": {"en": "Resume • Deal {p0}", "hi": "जारी रखें • बाज़ी {p0}"},
   "choose_a_card_light_up_the_table": {
-    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.8",
-    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.8"
+    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.9",
+    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.9"
   },
   "deal_complete_2": {"en": "Deal complete", "hi": "बाज़ी पूरी"},
   "you_and_ari_win": {"en": "You and Ari win!", "hi": "आप और Ari जीत गए!"},

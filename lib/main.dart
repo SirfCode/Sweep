@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'audio/sfx_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/strings.dart';
@@ -21,11 +22,14 @@ Future<void> main() async {
 const saveKey = 'sweep.game.v1';
 
 class SweepApp extends StatefulWidget {
+  /// Optional externally-owned manager for tests or embedding.
+  final SfxManager? sfxManager;
   final SharedPreferences preferences;
   final Duration botDelay;
   final Duration openingDelay;
   const SweepApp(
       {super.key,
+      this.sfxManager,
       required this.preferences,
       this.botDelay = const Duration(milliseconds: 1500),
       this.openingDelay = const Duration(seconds: 20)});
@@ -34,10 +38,14 @@ class SweepApp extends StatefulWidget {
 }
 
 class _AppState extends State<SweepApp> {
+  late final SfxManager _sfx;
+  Offset? _soundPointer;
   String? _language;
   @override
   void initState() {
     super.initState();
+    _sfx = widget.sfxManager ?? SfxManager(widget.preferences);
+    unawaited(_sfx.preload());
     _language = widget.preferences.getString('seep.language');
   }
 
@@ -47,9 +55,40 @@ class _AppState extends State<SweepApp> {
   }
 
   @override
+  void dispose() {
+    if (widget.sfxManager == null) _sfx.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => LanguageScope(
       change: _changeLanguage,
       child: MaterialApp(
+          builder: (context, child) => Listener(
+              onPointerDown: (event) {
+                _soundPointer = event.position;
+                _sfx.unlock();
+              },
+              onPointerCancel: (_) => _soundPointer = null,
+              onPointerUp: (event) {
+                if (_soundPointer != null &&
+                    (event.position - _soundPointer!).distance < 10) {
+                  unawaited(_sfx.play(Sfx.button));
+                }
+                _soundPointer = null;
+              },
+              child: Focus(
+                  onKeyEvent: (_, event) {
+                    if (event is KeyDownEvent) {
+                      _sfx.unlock();
+                      if (event.logicalKey == LogicalKeyboardKey.enter ||
+                          event.logicalKey == LogicalKeyboardKey.space) {
+                        unawaited(_sfx.play(Sfx.button));
+                      }
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: child!)),
           title: 'Seep',
           locale: _language == null ? null : Locale(_language!),
           supportedLocales: const [Locale('en'), Locale('hi')],
@@ -80,17 +119,20 @@ class _AppState extends State<SweepApp> {
                       backgroundColor: gold,
                       foregroundColor: ink))),
           home: SweepScreen(
+              sfx: _sfx,
               preferences: widget.preferences,
               botDelay: widget.botDelay,
               openingDelay: widget.openingDelay)));
 }
 
 class SweepScreen extends StatefulWidget {
+  final SfxManager sfx;
   final SharedPreferences preferences;
   final Duration botDelay;
   final Duration openingDelay;
   const SweepScreen(
       {super.key,
+      required this.sfx,
       required this.preferences,
       required this.botDelay,
       required this.openingDelay});
@@ -101,6 +143,33 @@ class SweepScreen extends StatefulWidget {
 class _SweepScreenState extends State<SweepScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   SweepGame? _game;
+  SfxManager get _sfx => widget.sfx;
+
+  Future<void> _soundDialog() => _overlay(() => showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ListenableBuilder(
+          listenable: _sfx,
+          builder: (context, child) => AlertDialog(
+                  title: Text(textFor('sound_effects')),
+                  content: Column(mainAxisSize: MainAxisSize.min, children: [
+                    SwitchListTile(
+                        key: const Key('sfx-enabled'),
+                        title: Text(textFor('sound_effects')),
+                        value: _sfx.enabled,
+                        onChanged: _sfx.setEnabled),
+                    Text(
+                        '${textFor('sfx_volume')} · ${(_sfx.volume * 100).round()}%'),
+                    Slider(
+                        key: const Key('sfx-volume'),
+                        value: _sfx.volume,
+                        label: '${(_sfx.volume * 100).round()}%',
+                        onChanged: _sfx.setVolume),
+                  ]),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(textFor('close')))
+                  ]))));
   String textFor(String key, [Map<String, Object?> args = const {}]) =>
       tr(context, key, args);
 
@@ -177,6 +246,7 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _play(Move move, {Map<String, dynamic>? analysis}) {
     if (_paused || _moving != null) return;
+    unawaited(_sfx.play(Sfx.play));
     _botTimer?.cancel();
     setState(() {
       _moving = move;
@@ -194,6 +264,7 @@ class _SweepScreenState extends State<SweepScreen>
         _moving == null &&
         _leftoverCards.isNotEmpty) {
       setState(() => _leftoverCards = []);
+      unawaited(_sfx.play(Sfx.capture));
       _scheduleBot();
       return;
     }
@@ -216,6 +287,9 @@ class _SweepScreenState extends State<SweepScreen>
               {'p0': playerName(context, g.turn), 'p1': g.plays == 0 ? 25 : 50})
           : '${playerName(context, g.turn)} · ${_moveLabel(move)}';
       g.play(move, botAnalysis: _movingAnalysis);
+      if (move.kind == MoveKind.capture) {
+        unawaited(_sfx.play(clear ? Sfx.sweep : Sfx.capture));
+      }
       _movingAnalysis = null;
       _moving = null;
       _showingFinalMove = g.phase == Phase.results;
@@ -289,6 +363,7 @@ class _SweepScreenState extends State<SweepScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
+    _sfx.setForeground(_foreground);
     if (_foreground) {
       if ((_moving != null || _leftoverCards.isNotEmpty) &&
           !_paused &&
@@ -334,7 +409,17 @@ class _SweepScreenState extends State<SweepScreen>
         _showingFinalMove &&
         g?.phase == Phase.results) {
       _botTimer = Timer(Duration(seconds: 5), () {
-        if (mounted) setState(() => _showingFinalMove = false);
+        if (mounted) {
+          setState(() => _showingFinalMove = false);
+          unawaited(_sfx.play(Sfx.score));
+          if (g!.winner == 0) {
+            unawaited(_sfx.play(Sfx.gameWin));
+          } else if (g.winner == 1 || g.lastScores[0] < g.lastScores[1]) {
+            unawaited(_sfx.play(Sfx.roundLose));
+          } else if (g.lastScores[0] > g.lastScores[1]) {
+            unawaited(_sfx.play(Sfx.roundWin));
+          }
+        }
       });
       return;
     }
@@ -369,11 +454,26 @@ class _SweepScreenState extends State<SweepScreen>
   }
 
   void _act(void Function() action) {
+    final oldGame = _game;
+    final oldDeal = _game?.dealNumber;
+    final oldPhase = _game?.phase;
+    final oldTurn = _game?.turn;
     try {
       setState(action);
+      if (_game != oldGame ||
+          _game?.dealNumber != oldDeal ||
+          (oldPhase == Phase.opening && _game?.phase == Phase.playing)) {
+        unawaited(_sfx.play(Sfx.deal));
+      }
+      if (_game?.turn == 0 &&
+          _game?.phase != Phase.results &&
+          (oldTurn != 0 || oldDeal != _game?.dealNumber)) {
+        unawaited(_sfx.play(Sfx.turn));
+      }
       _save();
       _scheduleBot();
     } catch (e) {
+      unawaited(_sfx.play(Sfx.invalid));
       setState(() => _error = textFor('play_paused', {'p0': e}));
       _botTimer?.cancel();
     }
@@ -408,6 +508,7 @@ class _SweepScreenState extends State<SweepScreen>
   }
 
   void _home() {
+    _sfx.stop();
     _botTimer?.cancel();
     _motion.stop();
     _moving = null;
@@ -541,6 +642,8 @@ class _SweepScreenState extends State<SweepScreen>
                         _rules();
                       } else if (value == 'history') {
                         _history();
+                      } else if (value == 'sound') {
+                        _soundDialog();
                       } else {
                         setState(() => _pace =
                             {'slow': 1.6, 'normal': 1.0, 'fast': .5}[value]!);
@@ -549,6 +652,9 @@ class _SweepScreenState extends State<SweepScreen>
                       }
                     },
                     itemBuilder: (_) => [
+                          PopupMenuItem(
+                              value: 'sound',
+                              child: Text(textFor('sound_effects'))),
                           PopupMenuItem<String>(
                               enabled: false,
                               child: Text(textFor('turn_speed'))),
@@ -613,7 +719,7 @@ class _SweepScreenState extends State<SweepScreen>
                             child: CardFace(card: card, large: true))
                     ]),
                     SizedBox(height: 24),
-                    Text(textFor('you_ari_vs_mira_dev'),
+                    Text(textFor('gurubox_presentation'),
                         style: TextStyle(fontSize: 20, color: gold)),
                     SizedBox(height: 12),
                     Text(textFor('build_houses_capture_points_and_clear_the'),

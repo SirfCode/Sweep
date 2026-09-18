@@ -30,6 +30,7 @@ extension _TableView on _SweepScreenState {
           child: child);
   void _chooseCard(int card, List<Move> moves) {
     if (moves.isEmpty) {
+      unawaited(_sfx.play(Sfx.invalid));
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(textFor('keep_this_card_for_your_house_or'))));
       return;

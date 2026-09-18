@@ -185,6 +185,17 @@ void main() {
     g.validate();
     expect(g.houses, isEmpty);
     expect(g.score(0).earnedSweepPoints, 0);
+    expect(g.sweeps[0], isEmpty);
+    expect(
+        g.historyEvents.any((event) => event['event'] == 'finalClear'), isTrue);
+    final legacy = g.toJson();
+    legacy['sweeps'] = [
+      ['finalPlay'],
+      []
+    ];
+    final restored = SweepGame.fromJson(legacy);
+    expect(restored.sweeps[0], isEmpty);
+    expect(restored.totals, g.totals);
     expect(g.captured[0].toSet(), {played, ...table});
   });
   test('multiple complete games reach the winning margin only after scoring',

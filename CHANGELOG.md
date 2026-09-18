@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+- Replace the homepage team line with “GuruBox presentation”.
+
+- Exclude final-turn table clearances from seep counters and label their history correctly; repair old zero-bonus seep entries when loading saves.
+
+- Add a centralized, gesture-unlocked SFX system with variants, cooldowns, voice limits, persistent English/Hindi controls and graceful missing-file handling. Bundle 17 prepared CC0 Kenney effects; see SFX.md for sources and integration details.
+
 ## 0.8.0
 
 - Lock Android phones to portrait, fit crowded table cards and houses without scrolling, and give Ari's seat badge enough height for its name and card count.

@@ -522,11 +522,18 @@ class SweepGame {
               : plays == 47
                   ? SweepTiming.finalPlay
                   : SweepTiming.intermediate;
-          sweeps[actor % 2].add(timing);
-          _log(
-              '${seatNames[actor]} clears the table • ${sweepBonus(timing)} provisional seep points.',
-              event: 'clear',
-              args: {'player': actor, 'points': sweepBonus(timing)});
+          if (timing == SweepTiming.finalPlay) {
+            _log(
+                '${seatNames[actor]} clears the table on the final play; no seep bonus.',
+                event: 'finalClear',
+                args: {'player': actor});
+          } else {
+            sweeps[actor % 2].add(timing);
+            _log(
+                '${seatNames[actor]} clears the table • ${sweepBonus(timing)} provisional seep points.',
+                event: 'clear',
+                args: {'player': actor, 'points': sweepBonus(timing)});
+          }
         }
       case MoveKind.build:
       case MoveKind.raise:
@@ -721,6 +728,7 @@ class SweepGame {
     g.sweeps = (j['sweeps'] as List)
         .map((s) => (s as List)
             .map((t) => SweepTiming.values.byName(t as String))
+            .where((timing) => timing != SweepTiming.finalPlay)
             .toList())
         .toList();
     g.totals = List<int>.from(j['totals'] as List);

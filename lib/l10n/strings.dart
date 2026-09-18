@@ -33,10 +33,17 @@ String historyText(BuildContext context, Map<String, dynamic> record) {
   final english = '${record['text'] ?? ''}'
       .replaceAll('sweep', 'seep')
       .replaceAll('Sweep', 'Seep');
-  if (Localizations.localeOf(context).languageCode != 'hi') return english;
   final a = (record['args'] as Map?) ?? {};
   final player =
       a['player'] is int ? playerName(context, a['player'] as int) : '';
+  // Older saves recorded final clearances as a zero-point seep.
+  if (record['event'] == 'finalClear' ||
+      (record['event'] == 'clear' && a['points'] == 0)) {
+    return Localizations.localeOf(context).languageCode == 'hi'
+        ? '$player ने आखिरी चाल में मेज़ खाली की; कोई सीप बोनस नहीं।'
+        : '$player clears the table on the final play; no seep bonus.';
+  }
+  if (Localizations.localeOf(context).languageCode != 'hi') return english;
   return switch (record['event']) {
     'dealStart' =>
       'बाज़ी ${a['deal']} • ${playerName(context, a['dealer'] as int)} पत्ते बाँटते हैं। $player बोली लगाते हैं।${a['retries'] == 0 ? '' : ' गड्डी ${a['retries']} बार दोबारा फेंटी गई।'}',

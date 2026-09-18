@@ -62,8 +62,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2200));
     await tester.pump();
     expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
-    expect(find.text('Leftover cards → Dev\n13 points · No seep'),
-        findsOneWidget);
+    expect(
+        find.text('Leftover cards → Dev\n13 points · No seep'), findsOneWidget);
     final totals = saved(prefs).totals.toList();
     expect(saved(prefs).captured[1], containsAll([50, 9, 0]));
     await tester.tap(find.byKey(const Key('last-capture-player-2')));
@@ -170,6 +170,9 @@ void main() {
     expect(saved(prefs).phase, Phase.results);
     expect(find.textContaining('Seep!'), findsNothing);
     expect(saved(prefs).score(0).earnedSweepPoints, 0);
+    expect(saved(prefs).sweeps[0], isEmpty);
+    expect(
+        tester.widget<Text>(find.byKey(const Key('live-sweeps-0'))).data, '0');
     final totals = saved(prefs).totals.toList();
     expect(find.text('Scores in a moment…'), findsOneWidget);
     expect(find.text('Captured card points'), findsNothing);
