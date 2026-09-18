@@ -18,7 +18,7 @@ Each decision compares up to seven candidate moves across four plausible unseen-
 
 Run `dart run tool/benchmark_bots.dart 100` to reproduce 200 paired deals against the preserved original policy, using seeds 700–799 and alternating teams/dealers. Public-memory policy measurement: 180 wins, 19 losses, 1 tie, mean score margin +156.01; seeps 753 versus 41. The previous sampled policy measured 179 wins, 21 losses, margin +146.51 and seeps 750 versus 59 against the same baseline. Decision latency was 18.2 ms at the 95th percentile and 147.7 ms maximum on the development machine; browser and device performance may differ. These measure strength against the original policy, not against human players or a direct match between policy revisions.
 
-## Version 0.7 — capture review and clearer animations
+## Version 0.8 — Hindi support and tables that fit
 
 This release is the free guest version: play without signing in, against three bots. Progress is saved locally on the current device/browser; no account is required.
 
@@ -28,7 +28,7 @@ The current development layout gives most of the screen to the felt table and ca
 
 Tap **Scores** in the toolbar for the deal number, cumulative **Game** totals and **THIS DEAL** points, seep counts and provisional bonuses. This popup pauses play and reflects completed moves. Seep bonuses require at least 20 captured card points and are finalized when the deal ends. The **Game menu** contains speed settings, rules and history, and also pauses play while open.
 
-Tap a hand card, then a highlighted table target or a visual move option. The gold outline previews the complete legal move; press Capture, Build, Raise, or Throw to play it. Cancel selection leaves the deal unchanged. The shared table scrolls when crowded. Tap a house without a selection to inspect its component groups and commitments.
+Tap a hand card, then a highlighted table target or a visual move option. The gold outline previews the complete legal move; press Capture, Build, Raise, or Throw to play it. Cancel selection leaves the deal unchanged. Crowded tables scale cards and houses down to fit without scrolling. Android phones stay in portrait orientation. Tap a house without a selection to inspect its component groups and commitments.
 
 Tap any bot's player icon, or **You** beside your remaining-card count, to view that player's latest capture. The popup shows the captured cards including their played card, card points and any provisional seep bonus. It pauses play, retains only the latest capture per player, survives save/resume and resets each deal. Throws and builds do not replace it; end-of-deal leftover awards are not a capturing turn. Older saves recover captures from public decision records when available.
 
@@ -42,7 +42,7 @@ Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` recei
 
 Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.
 
-Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.7.0` on `codex/0.2-table-ui`; the package version is `0.7.0+7`.
+Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.8.0` on `codex/0.2-table-ui`; the package version is `0.8.0+8`.
 
 ## Run on the configured emulator
 

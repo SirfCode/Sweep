@@ -368,6 +368,64 @@ class BackPainter extends CustomPainter {
   bool shouldRepaint(BackPainter oldDelegate) => false;
 }
 
+/// Keep every loose card and house visible, preserving their tap targets.
+class FittedTable extends StatelessWidget {
+  final int looseCount, houseCount;
+  final double cardWidth, cardHeight;
+  final Widget child;
+  const FittedTable(
+      {super.key,
+      required this.looseCount,
+      required this.houseCount,
+      required this.cardWidth,
+      required this.cardHeight,
+      required this.child});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(6),
+        child: LayoutBuilder(builder: (context, bounds) {
+          if (bounds.maxWidth <= 0 || bounds.maxHeight <= 0) {
+            return const SizedBox.shrink();
+          }
+          double groupHeight(int count, double width, double height, double gap,
+              double rowGap, double availableWidth) {
+            if (count == 0) return 0;
+            final columns =
+                math.max(1, ((availableWidth + gap) / (width + gap)).floor());
+            final rows = (count / columns).ceil();
+            return rows * height + (rows - 1) * rowGap;
+          }
+
+          bool fits(double scale) {
+            final width = bounds.maxWidth / scale;
+            final height =
+                groupHeight(looseCount, cardWidth, cardHeight, 9, 10, width) +
+                    groupHeight(houseCount, 134, 139, 10, 8, width) +
+                    (houseCount > 0 ? 10 : 0);
+            return height * scale <= bounds.maxHeight &&
+                (looseCount == 0 || cardWidth * scale <= bounds.maxWidth) &&
+                (houseCount == 0 || 134 * scale <= bounds.maxWidth);
+          }
+
+          var low = 0.0;
+          var high = 1.0;
+          for (var i = 0; i < 32; i++) {
+            final mid = (low + high) / 2;
+            if (fits(mid)) {
+              low = mid;
+            } else {
+              high = mid;
+            }
+          }
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(width: bounds.maxWidth / low, child: child),
+          );
+        }),
+      );
+}
+
 class PlayerSeat extends StatelessWidget {
   final int seat, count;
   final bool active, dealer, compact;
@@ -394,7 +452,7 @@ class PlayerSeat extends StatelessWidget {
             child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: seat == 2 ? 88 : 44,
-                height: seat == 2 ? 30 : 64,
+                height: seat == 2 ? 42 : 64,
                 decoration: BoxDecoration(
                     color: active ? gold : ink,
                     border: Border.all(

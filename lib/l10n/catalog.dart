@@ -173,8 +173,8 @@ const messageCatalog = {
   "view_game_result": {"en": "View game result", "hi": "खेल का परिणाम देखें"},
   "resume_deal": {"en": "Resume • Deal {p0}", "hi": "जारी रखें • बाज़ी {p0}"},
   "choose_a_card_light_up_the_table": {
-    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.7",
-    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.7"
+    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.8",
+    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.8"
   },
   "deal_complete_2": {"en": "Deal complete", "hi": "बाज़ी पूरी"},
   "you_and_ari_win": {"en": "You and Ari win!", "hi": "आप और Ari जीत गए!"},

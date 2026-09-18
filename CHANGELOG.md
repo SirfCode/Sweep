@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
+
+- Lock Android phones to portrait, fit crowded table cards and houses without scrolling, and give Ari's seat badge enough height for its name and card count.
 
 - Set the opening viewing pause to 20 seconds and label the discard action Throw / फेंकें.
 - Rename visible game branding and terminology to Seep/सीप while preserving legacy save and package identifiers.

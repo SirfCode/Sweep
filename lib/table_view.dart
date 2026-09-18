@@ -330,104 +330,101 @@ extension _TableView on _SweepScreenState {
                             bottom: bottom,
                             left: side,
                             right: side,
-                            child: LayoutBuilder(
-                                builder: (context, area) =>
-                                    SingleChildScrollView(
-                                        key: Key('table-cards'),
-                                        padding: const EdgeInsets.all(6),
-                                        child: ConstrainedBox(
-                                            constraints: BoxConstraints(
-                                                minHeight: (area.maxHeight - 12)
-                                                    .clamp(0, double.infinity)),
-                                            child: Center(
-                                                child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                  if (g.phase == Phase.call)
-                                                    Wrap(
-                                                        alignment: WrapAlignment
-                                                            .center,
-                                                        spacing: 7,
-                                                        runSpacing: 7,
-                                                        children: List.generate(
-                                                            4,
-                                                            (i) => CardBack(
-                                                                key: Key(
-                                                                    'hidden-$i'))))
-                                                  else ...[
-                                                    Wrap(
-                                                        alignment: WrapAlignment
-                                                            .center,
-                                                        spacing: 9,
-                                                        runSpacing: 10,
-                                                        children: [
-                                                          for (final c
-                                                              in g.loose)
-                                                            AnimatedOpacity(
-                                                                duration: Duration(
-                                                                    milliseconds:
-                                                                        180),
-                                                                opacity: _selectedCard !=
-                                                                            null &&
-                                                                        !available
-                                                                            .contains(
-                                                                                c)
-                                                                    ? .4
-                                                                    : 1,
-                                                                child: _gathered(
-                                                                    selected
+                            child: FittedTable(
+                                looseCount:
+                                    g.phase == Phase.call ? 4 : g.loose.length,
+                                houseCount:
+                                    g.phase == Phase.call ? 0 : g.houses.length,
+                                cardWidth:
+                                    g.phase == Phase.call ? 54 : 72 * cardScale,
+                                cardHeight: g.phase == Phase.call
+                                    ? 78
+                                    : 102 * cardScale,
+                                key: Key('table-cards'),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (g.phase == Phase.call)
+                                        Wrap(
+                                            alignment: WrapAlignment.center,
+                                            spacing: 7,
+                                            runSpacing: 7,
+                                            children: List.generate(
+                                                4,
+                                                (i) => CardBack(
+                                                    key: Key('hidden-$i'))))
+                                      else ...[
+                                        Wrap(
+                                            alignment: WrapAlignment.center,
+                                            spacing: 9,
+                                            runSpacing: 10,
+                                            children: [
+                                              for (final c in g.loose)
+                                                AnimatedOpacity(
+                                                    duration: Duration(
+                                                        milliseconds: 180),
+                                                    opacity:
+                                                        _selectedCard != null &&
+                                                                !available
+                                                                    .contains(c)
+                                                            ? .4
+                                                            : 1,
+                                                    child: _gathered(
+                                                        selected.contains(c),
+                                                        TableCard(
+                                                            key:
+                                                                Key('table-$c'),
+                                                            card: c,
+                                                            scale: cardScale,
+                                                            highlighted: selected
+                                                                .contains(c),
+                                                            onTap: human &&
+                                                                    available
                                                                         .contains(
-                                                                            c),
-                                                                    TableCard(
-                                                                        key: Key(
-                                                                            'table-$c'),
-                                                                        card: c,
-                                                                        scale:
-                                                                            cardScale,
-                                                                        highlighted:
-                                                                            selected.contains(
-                                                                                c),
-                                                                        onTap: human && available.contains(c)
-                                                                            ? () =>
-                                                                                _target((m) => m.selectedLoose.contains(c))
-                                                                            : null))),
-                                                        ]),
-                                                    if (g.houses.isNotEmpty)
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .only(
-                                                                  top: 10),
-                                                          child: Wrap(
-                                                              alignment:
-                                                                  WrapAlignment
-                                                                      .center,
-                                                              spacing: 10,
-                                                              runSpacing: 8,
-                                                              children: [
-                                                                for (var i = 0;
-                                                                    i <
-                                                                        g.houses
-                                                                            .length;
-                                                                    i++)
-                                                                  _gathered(
-                                                                      selectedHouses
+                                                                            c)
+                                                                ? () => _target((m) => m
+                                                                    .selectedLoose
+                                                                    .contains(c))
+                                                                : null))),
+                                            ]),
+                                        if (g.houses.isNotEmpty)
+                                          Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 10),
+                                              child: Wrap(
+                                                  alignment:
+                                                      WrapAlignment.center,
+                                                  spacing: 10,
+                                                  runSpacing: 8,
+                                                  children: [
+                                                    for (var i = 0;
+                                                        i < g.houses.length;
+                                                        i++)
+                                                      _gathered(
+                                                          selectedHouses
+                                                              .contains(i),
+                                                          HouseStack(
+                                                              key: Key(
+                                                                  'house-$i'),
+                                                              house:
+                                                                  g.houses[i],
+                                                              highlighted:
+                                                                  selectedHouses
+                                                                      .contains(
+                                                                          i),
+                                                              onTap: human &&
+                                                                      availableHouses
                                                                           .contains(
-                                                                              i),
-                                                                      HouseStack(
-                                                                          key: Key(
-                                                                              'house-$i'),
-                                                                          house: g.houses[
-                                                                              i],
-                                                                          highlighted: selectedHouses.contains(
-                                                                              i),
-                                                                          onTap: human && availableHouses.contains(i)
-                                                                              ? () => _target((m) => m.houseIndexes.contains(i) || m.raisedIndex == i)
-                                                                              : () => _inspectHouse(g.houses[i]))),
-                                                              ])),
-                                                  ],
-                                                ])))))),
+                                                                              i)
+                                                                  ? () => _target((m) =>
+                                                                      m.houseIndexes.contains(i) ||
+                                                                      m.raisedIndex ==
+                                                                          i)
+                                                                  : () =>
+                                                                      _inspectHouse(g.houses[i]))),
+                                                  ])),
+                                      ],
+                                    ]))),
                         if (_moving != null)
                           Positioned.fill(
                               child: IgnorePointer(child: _flight(g))),
