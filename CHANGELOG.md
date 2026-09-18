@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+
+- Rename Mira to Nishu, Ari to Shak, and Dev to JLo across player labels, team scores, translations, and saved-history display.
+- Merge the completed table UI, bot improvements, localization, and sound effects release into master.
+
 ## 0.9.0
 
 - Replace the homepage team line with “GuruBox presentation”.

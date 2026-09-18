@@ -74,7 +74,7 @@ SweepGame ariPosition() {
 }
 
 void main() {
-  test('Ari avoids the known jack sweep across seeds and logs the reason', () {
+  test('Shak avoids the known jack sweep across seeds and logs the reason', () {
     final g = ariPosition();
     for (var seed = 0; seed < 32; seed++) {
       final bot = SweepBot(seed);
@@ -94,7 +94,7 @@ void main() {
     }
   });
 
-  test('every sampled Dev hand contains the publicly proved last jack', () {
+  test('every sampled JLo hand contains the publicly proved last jack', () {
     final g = ariPosition();
     for (var seed = 0; seed < 64; seed++) {
       final sampled = SweepBot(seed).sampleWorld(g.position)!;
@@ -110,7 +110,7 @@ void main() {
     final g = ariPosition();
     g.play(
         g.position.legalMoves().firstWhere((m) => m.kind == MoveKind.discard));
-    // Dev takes Ari's house. Ari still has the nine he publicly promised.
+    // JLo takes Shak's house. Shak still has the nine he publicly promised.
     g.play(g.position.legalMoves().firstWhere((m) => m.card == 47));
     expect(g.houses, isEmpty);
     expect(g.knownRanks[2], contains(9));

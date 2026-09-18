@@ -17,7 +17,7 @@ String rankName(int rank) => switch (rank) {
     };
 String cardName(int card) =>
     '${rankName(rankOf(card))}${['♣', '♦', '♥', '♠'][card ~/ 13]}';
-const seatNames = ['You', 'Mira', 'Ari', 'Dev'];
+const seatNames = ['You', 'Nishu', 'Shak', 'JLo'];
 
 enum Phase { call, opening, playing, results }
 

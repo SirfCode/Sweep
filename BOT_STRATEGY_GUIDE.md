@@ -2,7 +2,7 @@
 
 Review of v0.7.0, with the improvements made during this review.
 
-The bots try to maximise their **team's score**, not simply collect the most cards. Ari plays for your team; Mira and Dev play for the opposing team. All three use the same decision rules. They have no access to the real opponents' hands.
+The bots try to maximise their **team's score**, not simply collect the most cards. Shak plays for your team; Nishu and JLo play for the opposing team. All three use the same decision rules. They have no access to the real opponents' hands.
 
 ## 1. What a bot knows
 
@@ -16,9 +16,9 @@ The bots try to maximise their **team's score**, not simply collect the most car
 | Another player's actual hand | No |
 | The real undealt deck or shuffle order | No |
 
-**A known rank is a fact; an unseen card is a possibility.** If Dev calls 11, he has at least one jack. If he later plays a jack, that guarantee is consumed. A surviving house can prove that he still holds another. The bot does not assume the original promise means Dev keeps a jack forever.
+**A known rank is a fact; an unseen card is a possibility.** If JLo calls 11, he has at least one jack. If he later plays a jack, that guarantee is consumed. A surviving house can prove that he still holds another. The bot does not assume the original promise means JLo keeps a jack forever.
 
-If somebody else captures Dev's house, Dev's unplayed promised rank remains known. Knowledge survives save/resume and resets at the next deal. Older saves recover public evidence from recorded moves where available; missing history stays unknown.
+If somebody else captures JLo's house, JLo's unplayed promised rank remains known. Knowledge survives save/resume and resets at the next deal. Older saves recover public evidence from recorded moves where available; missing history stays unknown.
 
 ## 2. How it chooses a move
 
@@ -43,11 +43,11 @@ Partner support is partly explicit and partly found through the search. The quic
 
 ## 4. Three examples
 
-### Ari's avoidable jack seep
+### Shak's avoidable jack seep
 
-Ari holds 6♦, 6♥ and 9♦. The table has 10♦, A♥ and Ari's 9-house containing 7♥ + 2♠. Dev is known to hold the remaining jack.
+Shak holds 6♦, 6♥ and 9♦. The table has 10♦, A♥ and Shak's 9-house containing 7♥ + 2♠. JLo is known to hold the remaining jack.
 
-Capturing the house gives Ari just two card points and leaves 10 + A for Dev to seep. Discarding either six leaves extra cards on the table and prevents that immediate seep. The bot now chooses a six across all 32 regression seeds for this recorded position.
+Capturing the house gives Shak just two card points and leaves 10 + A for JLo to seep. Discarding either six leaves extra cards on the table and prevents that immediate seep. The bot now chooses a six across all 32 regression seeds for this recorded position.
 
 ### The last jack belongs to your partner
 
@@ -79,7 +79,7 @@ Finish the deal, then open **Game menu → Deal log → Review completed-deal de
 | Report field | Meaning |
 |---|---|
 | `reason` | Why the bot selected the move or used a fallback |
-| `knownRanks` | At least one card of each listed rank is publicly guaranteed; seats are You, Mira, Ari, Dev |
+| `knownRanks` | At least one card of each listed rank is publicly guaranteed; seats are You, Nishu, Shak, JLo |
 | `sweepRisk` | Approximate next-opponent seep threat: 0 means none detected; 1 means certain under the available information |
 | `expectedMargin` | Average evaluated team advantage across the imagined hands; not necessarily the final score |
 | `worstMargin` | Worst result among those four samples, not the worst possible result in the real game |
@@ -101,7 +101,7 @@ Useful future work would be stronger reply selection, broader testing against sk
 
 ## 8. Validation and code map
 
-The review adds `test/bot_review_test.dart`. Existing tests cover legal play, card conservation, public memory, save/resume, hidden-hand independence, Ari's reported mistake and choosing a scoring spade over a non-scoring equivalent.
+The review adds `test/bot_review_test.dart`. Existing tests cover legal play, card conservation, public memory, save/resume, hidden-hand independence, Shak's reported mistake and choosing a scoring spade over a non-scoring equivalent.
 
 Verification: all 57 tests passed, including the four new review regressions.
 
@@ -124,5 +124,5 @@ The benchmark's raw seep counts include recorded final clearances, even though t
 | `lib/game/engine.dart` | Legal moves, public memory, save data and decision records |
 | `lib/game/scoring.dart` | Seep eligibility and final scores |
 | `test/bot_review_test.dart` | Regression tests added by this review |
-| `test/public_memory_test.dart` | Ari's example and rank-memory guarantees |
+| `test/public_memory_test.dart` | Shak's example and rank-memory guarantees |
 | `tool/benchmark_bots.dart` | Repeatable strength and timing comparison |

@@ -17,7 +17,7 @@ String tr(BuildContext context, String key,
 String playerName(BuildContext context, int seat) =>
     seat == 0 && Localizations.localeOf(context).languageCode == 'hi'
         ? 'आप'
-        : ['You', 'Mira', 'Ari', 'Dev'][seat];
+        : ['You', 'Nishu', 'Shak', 'JLo'][seat];
 
 class LanguageScope extends InheritedWidget {
   final ValueChanged<String> change;
@@ -31,6 +31,9 @@ class LanguageScope extends InheritedWidget {
 
 String historyText(BuildContext context, Map<String, dynamic> record) {
   final english = '${record['text'] ?? ''}'
+      .replaceAll(RegExp(r'\bMira\b'), 'Nishu')
+      .replaceAll(RegExp(r'\bAri\b'), 'Shak')
+      .replaceAll(RegExp(r'\bDev\b'), 'JLo')
       .replaceAll('sweep', 'seep')
       .replaceAll('Sweep', 'Seep');
   final a = (record['args'] as Map?) ?? {};

@@ -13,8 +13,8 @@ const messageCatalog = {
         "Keep this card for your house, or choose a card that follows the opening call.",
     "hi": "यह पत्ता अपने घर के लिए रखें, या शुरुआती बोली के अनुसार पत्ता चुनें।"
   },
-  "you_ari": {"en": "You & Ari", "hi": "आप और Ari"},
-  "mira_dev": {"en": "Mira & Dev", "hi": "Mira और Dev"},
+  "you_ari": {"en": "You & Shak", "hi": "आप और Shak"},
+  "mira_dev": {"en": "Nishu & JLo", "hi": "Nishu और JLo"},
   "game": {"en": "Game {p0}", "hi": "कुल {p0}"},
   "this_deal": {"en": "THIS DEAL", "hi": "इस बाज़ी में"},
   "card_pts": {"en": "{p0} card pts", "hi": "पत्तों के {p0} अंक"},
@@ -175,12 +175,12 @@ const messageCatalog = {
   "view_game_result": {"en": "View game result", "hi": "खेल का परिणाम देखें"},
   "resume_deal": {"en": "Resume • Deal {p0}", "hi": "जारी रखें • बाज़ी {p0}"},
   "choose_a_card_light_up_the_table": {
-    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.9",
-    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.9"
+    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.10",
+    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.10"
   },
   "deal_complete_2": {"en": "Deal complete", "hi": "बाज़ी पूरी"},
-  "you_and_ari_win": {"en": "You and Ari win!", "hi": "आप और Ari जीत गए!"},
-  "mira_and_dev_win": {"en": "Mira and Dev win", "hi": "Mira और Dev जीत गए"},
+  "you_and_ari_win": {"en": "You and Shak win!", "hi": "आप और Shak जीत गए!"},
+  "mira_and_dev_win": {"en": "Nishu and JLo win", "hi": "Nishu और JLo जीत गए"},
   "a_lead_of_after_a_completed_deal": {
     "en": "A lead of 104 after a completed deal wins the game.",
     "hi": "पूरी बाज़ी के बाद 104 अंकों की बढ़त से खेल जीता जाता है।"
@@ -189,8 +189,8 @@ const messageCatalog = {
     "en": "Final lead: {p0} points.",
     "hi": "अंतिम बढ़त: {p0} अंक।"
   },
-  "you_ari_2": {"en": "You + Ari", "hi": "आप + Ari"},
-  "mira_dev_2": {"en": "Mira + Dev", "hi": "Mira + Dev"},
+  "you_ari_2": {"en": "You + Shak", "hi": "आप + Shak"},
+  "mira_dev_2": {"en": "Nishu + JLo", "hi": "Nishu + JLo"},
   "captured_card_points": {
     "en": "Captured card points",
     "hi": "उठाए पत्तों के अंक"

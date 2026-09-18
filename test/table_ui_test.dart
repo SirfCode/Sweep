@@ -63,7 +63,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
     expect(
-        find.text('Leftover cards → Dev\n13 points · No seep'), findsOneWidget);
+        find.text('Leftover cards → JLo\n13 points · No seep'), findsOneWidget);
     final totals = saved(prefs).totals.toList();
     expect(saved(prefs).captured[1], containsAll([50, 9, 0]));
     await tester.tap(find.byKey(const Key('last-capture-player-2')));

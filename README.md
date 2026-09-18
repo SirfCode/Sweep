@@ -18,15 +18,15 @@ Each decision compares up to seven candidate moves across four plausible unseen-
 
 Run `dart run tool/benchmark_bots.dart 100` to reproduce 200 paired deals against the preserved original policy, using seeds 700–799 and alternating teams/dealers. Public-memory policy measurement: 180 wins, 19 losses, 1 tie, mean score margin +156.01; seeps 753 versus 41. The previous sampled policy measured 179 wins, 21 losses, margin +146.51 and seeps 750 versus 59 against the same baseline. Decision latency was 18.2 ms at the 95th percentile and 147.7 ms maximum on the development machine; browser and device performance may differ. These measure strength against the original policy, not against human players or a direct match between policy revisions.
 
-## Version 0.9 — tactile sound effects and final-capture fixes
+## Version 0.10 — Nishu, Shak, and JLo
 
 Includes 17 offline CC0 sound effects with randomized card variations, gesture unlock, overlap limits, and saved mute/volume controls under **Game menu → Sound effects**. See [SFX.md](SFX.md) for the audio guide and credits. Final-turn clearances no longer increase the seep counter; older saved records are corrected when loaded. The homepage now reads “GuruBox presentation”.
 
 This release is the free guest version: play without signing in, against three bots. Progress is saved locally on the current device/browser; no account is required.
 
-Playable offline partnership Seep: one human, a bot partner (Ari), and two opponent bots (Mira and Dev). Includes opening calls, all four move types, ordinary and pakka houses, commitments, seeps, deal scoring, cumulative games, dealer rotation, and save/resume. The rulebook is available inside the app.
+Playable offline partnership Seep: one human, a bot partner (Shak), and two opponent bots (Nishu and JLo). Includes opening calls, all four move types, ordinary and pakka houses, commitments, seeps, deal scoring, cumulative games, dealer rotation, and save/resume. The rulebook is available inside the app.
 
-The current development layout gives most of the screen to the felt table and cards. Ari, Mira and Dev use small half-circle markers at the table edges; your hand identifies your own seat. Table cards, house stacks, and the animated played card are enlarged. The wooden border and toolbar are compact, and action controls appear only while choosing a move. The existing card artwork is unchanged.
+The current development layout gives most of the screen to the felt table and cards. Shak, Nishu and JLo use small half-circle markers at the table edges; your hand identifies your own seat. Table cards, house stacks, and the animated played card are enlarged. The wooden border and toolbar are compact, and action controls appear only while choosing a move. The existing card artwork is unchanged.
 
 Tap **Scores** in the toolbar for the deal number, cumulative **Game** totals and **THIS DEAL** points, seep counts and provisional bonuses. This popup pauses play and reflects completed moves. Seep bonuses require at least 20 captured card points and are finalized when the deal ends. The **Game menu** contains speed settings, rules and history, and also pauses play while open.
 
@@ -44,7 +44,7 @@ Rules live in `lib/game/engine.dart`; bot decisions in `lib/game/bot.dart` recei
 
 Validation covers 80 randomized complete deals, 15 games played to a winner, card/commitment invariants, serialized-state round trips, a full deal through the visual controls, results resume without duplicate scoring, four screen sizes, animation pause/resume, backgrounding, modal inspection, and saved speed settings. Run `flutter test` and `flutter analyze`. The web build and browser interaction are checked for 0.2; the earlier Android emulator verification belongs to 0.1. Current UI captures are in `artifacts/v0.2-*.png`.
 
-Version 0.1 is preserved on `master` and the annotated `v0.1.0` tag. The current release is tagged `v0.9.0` on `codex/0.2-table-ui`; the package version is `0.9.0+9`.
+Version 0.1 is preserved by the annotated `v0.1.0` tag. The current release is tagged `v0.10.0` on `master`; the package version is `0.10.0+10`.
 
 ## Run on the configured emulator
 
