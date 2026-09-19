@@ -11,9 +11,10 @@ Optional turn history is one JSON document inside the completed report.
 - SQL migration, migration runner, admin query examples and Render Blueprint.
 - Tested Android/native outbox and Flutter integration example.
 
-This is not deployed, and the current game UI does not upload automatically.
-Guest play remains offline. The example needs an opt-in/email UI and integration
-with the saved-game lifecycle before enabling uploads in the app.
+The API is deployed inside the existing What's for Dinner service and Postgres.
+See [Shared deployment](SHARED_DEPLOYMENT.md). Explicitly configured native builds
+upload completed games using a temporary dummy email. Unconfigured builds and web
+play remain offline. Public release still needs a proper identity/consent flow.
 
 ## Run locally
 
@@ -33,24 +34,21 @@ Environment files are ignored by Git. `.env.example` is a reference; the server
 reads process environment variables, not `.env` automatically. Default port is
 10000; `GET /health` checks the database and returns 200 or 503.
 
-## Deploy to Render
+## Standalone alternative (not the active deployment)
 
-1. Commit and push this code and root `render.yaml` to the repository's `master`
-   branch (or change the Blueprint branch before using another branch).
-2. In Render, create a **Blueprint**, select the repository and `render.yaml`.
+1. The optional `backend/render-standalone.example.yaml` creates only a free web
+   service, not a database. The active setup instead shares both existing resources.
+2. Only if intentionally choosing a separate service, use that file as a Blueprint.
 3. Supply distinct `ADMIN_API_KEY` and `SEEP_UPLOAD_API_KEY` secrets when prompted.
-   `DATABASE_URL` is connected automatically to the database's internal URL.
+   Supply DATABASE_URL for an existing same-region database as well.
 4. Review the plans, then deploy. The service runs `npm ci --omit=dev` and starts
    with `npm run migrate && npm start`. Verify its HTTPS `/health` endpoint.
 5. Configure the Flutter example with the service's HTTPS URL and upload-only key.
 
-The Blueprint creates a free web service and free Postgres in Oregon for testing.
-**Render's free Postgres expires after 30 days; choose a paid database before
-keeping real player reports.** Free web services can sleep; timeouts are safe to
-retry. See [Render free-service limits](https://render.com/docs/free) and
-[Blueprint reference](https://render.com/docs/blueprint-spec).
-`ipAllowList: []` disables external database access; the API uses Render's private
-connection. The Android application never needs database credentials.
+The active setup uses the existing Ohio database without a new subscription.
+Free web services can sleep; timeouts are safe to retry. The Android application
+never needs database credentials. The root Blueprint was removed to avoid
+recreating the superseded standalone database setup.
 
 Startup migrations use an advisory lock and checksums. Applied SQL files must
 not be edited: add a new numbered migration instead. Migrations are transactional;

@@ -11,6 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'game/bot.dart';
 import 'game/engine.dart';
 import 'table_art.dart';
+import 'package:uuid/uuid.dart';
+import 'reporting/app_reporting.dart';
+import 'reporting/completed_report.dart';
 export 'table_art.dart' show CardFace, CardBack;
 part 'table_view.dart';
 
@@ -197,6 +200,8 @@ class _SweepScreenState extends State<SweepScreen>
   String? _saveError;
   Timer? _botTimer;
   Future<void> _saveQueue = Future.value();
+  late final Future<AppReporting?> _reporting;
+  String _clientGameId = const Uuid().v4();
   late final AnimationController _motion;
   Move? _moving;
   bool _showingFinalMove = false;
@@ -341,19 +346,27 @@ class _SweepScreenState extends State<SweepScreen>
     WidgetsBinding.instance.addObserver(this);
     _pace = widget.preferences.getDouble('sweep.pace') ?? 1;
     _motion = AnimationController(vsync: this)..addStatusListener(_finishMove);
+    _reporting = AppReporting.open();
+    // Save operations surface initialization errors without an unhandled future.
+    unawaited(_reporting.then<void>((_) {}, onError: (Object _) {}));
     final saved = widget.preferences.getString(saveKey);
     if (saved != null) {
       try {
-        _game = SweepGame.fromJson(jsonDecode(saved) as Map<String, dynamic>);
+        final data = jsonDecode(saved) as Map<String, dynamic>;
+        _game = SweepGame.fromJson(data);
+        _clientGameId = data['clientGameId'] as String? ?? const Uuid().v4();
       } catch (_) {
         _saveError = localized('the_saved_game_could_not_be_loaded',
             widget.preferences.getString('seep.language') ?? 'en');
       }
     }
+    if (_game != null) _save();
   }
 
   @override
   void dispose() {
+    unawaited(
+        _reporting.then<void>((r) => r?.dispose(), onError: (Object _) {}));
     _botTimer?.cancel();
     _motion.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -381,12 +394,21 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _save() {
     if (_game == null) return;
-    final encoded = jsonEncode(_game!.toJson());
+    final encoded =
+        jsonEncode({..._game!.toJson(), 'clientGameId': _clientGameId});
+    final report = _game!.winner != null && _game!.phase == Phase.results
+        ? completedGameReport(
+            game: _game!,
+            clientGameId: _clientGameId,
+            email: AppReporting.email,
+            appVersion: AppReporting.version)
+        : null;
     _saveQueue = _saveQueue.then((_) async {
       try {
         if (!await widget.preferences.setString(saveKey, encoded)) {
           throw StateError('Save failed');
         }
+        if (report != null) await (await _reporting)?.enqueue(report);
         if (mounted && _saveError != null) setState(() => _saveError = null);
       } catch (_) {
         if (mounted) {
@@ -480,6 +502,12 @@ class _SweepScreenState extends State<SweepScreen>
   }
 
   Future<void> _newGame() async {
+    // Keep a completed save until its report has been durably queued.
+    if (_game?.winner != null) {
+      _save();
+      await _saveQueue;
+      if (!mounted || _saveError != null) return;
+    }
     if (_game != null && _game!.winner == null) {
       final replace = await showDialog<bool>(
           context: context,
@@ -498,6 +526,7 @@ class _SweepScreenState extends State<SweepScreen>
     }
     _act(() {
       _game = SweepGame.newGame();
+      _clientGameId = const Uuid().v4();
       _atHome = false;
       _error = null;
       _paused = false;

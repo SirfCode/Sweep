@@ -5,8 +5,9 @@ An offline Flutter card game planned for Android first, then iPhone. One human a
 ## Optional completed-game reporting backend
 
 See [Backend and Android upload guide](backend/README.md) for the Render/Postgres
-API, SQL migrations, admin stats and offline retry example. This is prepared for
-integration; the current guest game does not automatically upload reports.
+API, SQL migrations, admin stats and offline retry support. The API shares the
+existing What's for Dinner service and Postgres. Configured native testing builds
+upload completed games using a dummy email; ordinary builds remain offline.
 
 ## Bot strategy (development)
 

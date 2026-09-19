@@ -1,9 +1,11 @@
+# Optional standalone alternative only. Production shares the What's for Dinner
+# service and database; do not deploy this example for the shared setup.
 services:
   - type: web
     name: seep-api
     runtime: node
     plan: free
-    region: oregon
+    region: ohio
     branch: master
     rootDir: backend
     buildCommand: npm ci --omit=dev
@@ -16,18 +18,8 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: seep-postgres
-          property: connectionString
+        sync: false # Existing same-region database URL; creates no database.
       - key: ADMIN_API_KEY
         sync: false
       - key: SEEP_UPLOAD_API_KEY
         sync: false
-
-databases:
-  - name: seep-postgres
-    plan: free
-    region: oregon
-    databaseName: seep
-    user: seep
-    ipAllowList: []
