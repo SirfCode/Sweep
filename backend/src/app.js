@@ -33,9 +33,27 @@ export function buildApp({ pool, adminKey, uploadKey, logger = false,
       return reply.code(401).send({ error: 'Google sign-in required' });
     }
     try { request.googleIdentity = await verifyGoogle(header.slice(7)); }
-    catch { return reply.code(401).send({ error: 'Google session expired or invalid; sign in again' }); }
+    catch (error) {
+      // Classify failures without logging Google's error text (may contain JWTs).
+      const message = String(error?.message ?? '');
+      const reason = !googleClientId ? 'not_configured'
+        : /recipient|audience/i.test(message) ? 'audience_mismatch'
+        : /expired|too late|too early/i.test(message) ? 'token_time'
+        : /certificate|ENOTFOUND|ECONN|fetch|network/i.test(message) ? 'google_connection'
+        : /signature/i.test(message) ? 'signature'
+        : /issuer/i.test(message) ? 'issuer'
+        : /Invalid Google identity/i.test(message) ? 'identity_claims'
+        : 'invalid_token';
+      console.warn(JSON.stringify({ event: 'seep_google_rejected', requestId: request.id, reason }));
+      return reply.code(401).send({ error: 'Google session expired or invalid; sign in again', code: reason });
+    }
   };
   app.decorateRequest('googleIdentity', null);
+  app.addHook('onResponse', async (request, reply) => {
+    if (request.routeOptions.url === '/api/seep/auth/google') {
+      console.info(JSON.stringify({ event: 'seep_google_login', requestId: request.id, status: reply.statusCode }));
+    }
+  });
   const reportAuth = async (request, reply) => {
     if (request.headers.authorization || !allowLegacyUploads) return googleAuth(request, reply);
     return auth(uploadKey)(request, reply);
@@ -46,6 +64,11 @@ export function buildApp({ pool, adminKey, uploadKey, logger = false,
     return payload;
   });
   app.setErrorHandler((error, request, reply) => {
+    if (request.routeOptions.url === '/api/seep/auth/google') {
+      const code = typeof error.code === 'string' && /^[A-Z0-9_]{1,64}$/.test(error.code)
+        ? error.code : 'INTERNAL';
+      console.warn(JSON.stringify({ event: 'seep_google_error', requestId: request.id, code }));
+    }
     if (error.validation) return reply.code(400).send({ error: 'Invalid request', details: error.validation.map(v => ({ path: v.instancePath, message: v.message })) });
     if (error.statusCode && error.statusCode < 500) {
       return reply.code(error.statusCode).send({ error: error.statusCode === 413 ? 'Report exceeds 2 MiB limit' : 'Invalid request' });

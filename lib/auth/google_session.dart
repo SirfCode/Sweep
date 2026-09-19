@@ -5,6 +5,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+class _SignInFailure implements Exception {
+  final String code;
+  const _SignInFailure(this.code);
+}
+
 class GoogleSession extends ChangeNotifier {
   static const serverClientId =
       '863353284554-ph5l416ufjj2s7g0l3om594ldq2qmnvq.apps.googleusercontent.com';
@@ -79,7 +84,10 @@ class GoogleSession extends ChangeNotifier {
       if (error.code != GoogleSignInExceptionCode.canceled) {
         errorKey = 'login_failed';
       }
-    } catch (_) {
+    } catch (error) {
+      // Stable diagnostic codes only: never log tokens, profiles or responses.
+      debugPrint(
+          'seep_sign_in_failed: ${error is _SignInFailure ? error.code : error is TimeoutException ? 'timeout' : error is http.ClientException ? 'network' : 'unexpected_${error.runtimeType}'}');
       errorKey = 'login_verify_failed';
     } finally {
       busy = false;
@@ -90,23 +98,23 @@ class GoogleSession extends ChangeNotifier {
   Future<void> _verify(GoogleSignInAccount account, int generation) async {
     if (_disposed || generation != _generation) return;
     if (Uri.parse(apiBase).scheme != 'https') {
-      throw StateError('Google verification requires HTTPS');
+      throw const _SignInFailure('https_required');
     }
     final token = account.authentication.idToken;
-    if (token == null) throw StateError('Missing Google ID token');
+    if (token == null) throw const _SignInFailure('missing_google_token');
     final response = await _client
         .post(Uri.parse('$apiBase/api/seep/auth/google'), headers: {
       'Authorization': 'Bearer $token'
     }).timeout(const Duration(seconds: 60));
     if (response.statusCode != 200) {
-      throw StateError('Sign-in verification failed');
+      throw _SignInFailure('http_${response.statusCode}');
     }
     final profile = (jsonDecode(response.body) as Map)['user'];
     if (profile is! Map ||
         profile['id'] is! String ||
         profile['email'] is! String ||
         profile['googleSubject'] != account.id) {
-      throw StateError('Invalid profile');
+      throw const _SignInFailure('invalid_profile');
     }
     // Token payload is used only to schedule refresh. Backend verification above
     // is the trust boundary; a locally decoded token is never trusted as login.

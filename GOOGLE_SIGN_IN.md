@@ -82,3 +82,15 @@ consent/sign-in round trip is required in addition to automated tests.
 Implementation: lib/auth/google_session.dart, lib/reporting/app_reporting.dart,
 backend/src/google-auth.js. Automated tests verify forged/expired tokens,
 identity mismatch, idempotency, account-specific queues and retry behavior.
+
+## Troubleshooting
+
+The app logs only stable `seep_sign_in_failed` codes (HTTP status, missing token,
+network, timeout or invalid profile). The server logs `seep_google_login` status
+and sanitized `seep_google_rejected` / `seep_google_error` categories. Tokens,
+Google error text, response bodies and account details must never be logged.
+
+A real phone login was confirmed after reinstalling the diagnostic APK: the live
+backend returned 200 and created one Google-linked user. The earlier generic
+failure was not captured, so its root cause remains unconfirmed. A completed-game
+upload from that signed-in phone still requires finishing a full game.
