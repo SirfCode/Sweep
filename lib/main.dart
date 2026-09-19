@@ -5,6 +5,7 @@ import 'audio/sfx_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/strings.dart';
+import 'l10n/play_guide.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +15,7 @@ import 'table_art.dart';
 import 'package:uuid/uuid.dart';
 import 'reporting/app_reporting.dart';
 import 'reporting/completed_report.dart';
+import 'auth/google_session.dart';
 export 'table_art.dart' show CardFace, CardBack;
 part 'table_view.dart';
 
@@ -201,6 +203,8 @@ class _SweepScreenState extends State<SweepScreen>
   Timer? _botTimer;
   Future<void> _saveQueue = Future.value();
   late final Future<AppReporting?> _reporting;
+  late final GoogleSession _session;
+  Map<String, dynamic>? _completedReport;
   String _clientGameId = const Uuid().v4();
   late final AnimationController _motion;
   Move? _moving;
@@ -346,7 +350,9 @@ class _SweepScreenState extends State<SweepScreen>
     WidgetsBinding.instance.addObserver(this);
     _pace = widget.preferences.getDouble('sweep.pace') ?? 1;
     _motion = AnimationController(vsync: this)..addStatusListener(_finishMove);
-    _reporting = AppReporting.open();
+    _session = GoogleSession(widget.preferences)..addListener(_sessionChanged);
+    unawaited(_session.initialize());
+    _reporting = AppReporting.open(_session);
     // Save operations surface initialization errors without an unhandled future.
     unawaited(_reporting.then<void>((_) {}, onError: (Object _) {}));
     final saved = widget.preferences.getString(saveKey);
@@ -355,6 +361,8 @@ class _SweepScreenState extends State<SweepScreen>
         final data = jsonDecode(saved) as Map<String, dynamic>;
         _game = SweepGame.fromJson(data);
         _clientGameId = data['clientGameId'] as String? ?? const Uuid().v4();
+        _completedReport =
+            (data['completedReport'] as Map?)?.cast<String, dynamic>();
       } catch (_) {
         _saveError = localized('the_saved_game_could_not_be_loaded',
             widget.preferences.getString('seep.language') ?? 'en');
@@ -365,6 +373,8 @@ class _SweepScreenState extends State<SweepScreen>
 
   @override
   void dispose() {
+    _session.removeListener(_sessionChanged);
+    _session.dispose();
     unawaited(
         _reporting.then<void>((r) => r?.dispose(), onError: (Object _) {}));
     _botTimer?.cancel();
@@ -394,15 +404,24 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _save() {
     if (_game == null) return;
-    final encoded =
-        jsonEncode({..._game!.toJson(), 'clientGameId': _clientGameId});
-    final report = _game!.winner != null && _game!.phase == Phase.results
-        ? completedGameReport(
-            game: _game!,
-            clientGameId: _clientGameId,
-            email: AppReporting.email,
-            appVersion: AppReporting.version)
-        : null;
+    if (_completedReport == null &&
+        _game!.winner != null &&
+        _game!.phase == Phase.results &&
+        _session.subject != null) {
+      _completedReport = completedGameReport(
+          game: _game!,
+          clientGameId: _clientGameId,
+          email: _session.email!,
+          googleSubject: _session.subject,
+          displayName: _session.user?['displayName'] as String?,
+          appVersion: AppReporting.version);
+    }
+    final report = _completedReport;
+    final encoded = jsonEncode({
+      ..._game!.toJson(),
+      'clientGameId': _clientGameId,
+      if (report != null) 'completedReport': report
+    });
     _saveQueue = _saveQueue.then((_) async {
       try {
         if (!await widget.preferences.setString(saveKey, encoded)) {
@@ -527,6 +546,7 @@ class _SweepScreenState extends State<SweepScreen>
     _act(() {
       _game = SweepGame.newGame();
       _clientGameId = const Uuid().v4();
+      _completedReport = null;
       _atHome = false;
       _error = null;
       _paused = false;
@@ -551,16 +571,14 @@ class _SweepScreenState extends State<SweepScreen>
 
   Future<void> _rules() async {
     final rules = await rootBundle.loadString(
-        Localizations.localeOf(context).languageCode == 'hi'
-            ? 'SEEP_RULES_HI.md'
-            : 'SEEP_RULES.md');
+        playerGuideAsset(Localizations.localeOf(context).languageCode));
     if (!mounted) return;
     await _overlay(() => showDialog<void>(
         context: context,
         builder: (context) => Dialog.fullscreen(
             child: Scaffold(
                 appBar: AppBar(
-                    title: Text(textFor('rulebook')),
+                    title: Text(textFor('how_to_play')),
                     leading: IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(Icons.close))),
@@ -707,7 +725,8 @@ class _SweepScreenState extends State<SweepScreen>
                                 value: 'history',
                                 child: Text(textFor('deal_log'))),
                           PopupMenuItem(
-                              value: 'rules', child: Text(textFor('rulebook'))),
+                              value: 'rules',
+                              child: Text(textFor('how_to_play'))),
                         ]),
               ]),
           body: SafeArea(
@@ -728,6 +747,19 @@ class _SweepScreenState extends State<SweepScreen>
                         ? _results()
                         : _table())
           ]))));
+
+  void _sessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _signIn() async {
+    await _session.signIn();
+    if (!mounted) return;
+    _save();
+    try {
+      await (await _reporting)?.retry(afterSignIn: true);
+    } catch (_) {}
+  }
 
   Widget _homeBody() => Center(
       child: SingleChildScrollView(
@@ -771,6 +803,36 @@ class _SweepScreenState extends State<SweepScreen>
                         key: Key('new-game'),
                         onPressed: _newGame,
                         child: Text(textFor('new_game'))),
+                    if (_session.supported) ...[
+                      if (_session.email != null)
+                        Text(_session.email!, textAlign: TextAlign.center),
+                      if (_session.email != null && !_session.verified)
+                        Text(textFor('login_offline'),
+                            textAlign: TextAlign.center),
+                      if (_session.email == null || !_session.verified)
+                        OutlinedButton.icon(
+                            key: const Key('google-sign-in'),
+                            onPressed: _session.busy ? null : _signIn,
+                            icon: const Icon(Icons.account_circle_outlined),
+                            label: Text(textFor(_session.busy
+                                ? 'login_wait'
+                                : 'login_google'))),
+                      if (_session.email != null)
+                        TextButton(
+                            onPressed: _session.busy ? null : _session.signOut,
+                            child: Text(textFor('login_sign_out'))),
+                      if (_session.errorKey != null)
+                        Text(textFor(_session.errorKey!),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.orangeAccent)),
+                      Text(
+                          textFor(_session.email == null
+                              ? 'login_guest'
+                              : 'login_uploads'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 12)),
+                      const SizedBox(height: 16),
+                    ],
                     SizedBox(height: 16),
                     Text(textFor('choose_a_card_light_up_the_table'),
                         textAlign: TextAlign.center,

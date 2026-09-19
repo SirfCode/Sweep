@@ -22,3 +22,11 @@ Keep message keys stable. Update both language values, preserving all `{p0}`, `{
 Run `flutter test test/localization_test.dart test/table_ui_test.dart` and `flutter analyze`. The tests check placeholder parity, device-language fallback, in-game switching, persistence, portrait/landscape layouts, translated history and legacy saves. Review the actual Hindi text with a fluent player before publishing a release.
 
 Validation for this implementation: all 62 tests passed; web and Android debug builds succeeded. The Hindi home screen was also inspected in the web preview with the bundled font. Android runtime interaction was not retested on a device in this change.
+# Player help
+
+The in-app **How to play** guide uses `assets/help/how_to_play_en.txt`.
+English is the fallback until translations are added. Register future translated
+assets in `lib/l10n/play_guide.dart`; the existing language selector will choose
+them automatically. Keep each translation as short as the English guide.
+`SEEP_RULES.md` and `SEEP_RULES_HI.md` remain repository-only developer references
+and are not bundled in the app.

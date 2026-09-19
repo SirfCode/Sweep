@@ -128,6 +128,36 @@ const messageCatalog = {
   "keep_game": {"en": "Keep game", "hi": "पुराना खेल रखें"},
   "new_game": {"en": "New game", "hi": "नया खेल"},
   "rulebook": {"en": "Rulebook", "hi": "नियम"},
+  "how_to_play": {"en": "How to play", "hi": "कैसे खेलें"},
+  "login_google": {"en": "Sign in with Google", "hi": "Google से साइन इन करें"},
+  "login_wait": {"en": "Signing in…", "hi": "साइन इन हो रहा है…"},
+  "login_sign_out": {"en": "Sign out", "hi": "साइन आउट करें"},
+  "login_guest": {
+    "en":
+        "Or play as a guest. Signing in uploads completed-game results to your account.",
+    "hi":
+        "या अतिथि की तरह खेलें। साइन इन करने पर पूरे खेल के नतीजे आपके खाते में भेजे जाते हैं।"
+  },
+  "login_uploads": {
+    "en": "Completed-game results sync when you are online.",
+    "hi": "ऑनलाइन होने पर पूरे खेल के नतीजे भेजे जाते हैं।"
+  },
+  "login_offline": {
+    "en": "Saved account • reconnect to verify",
+    "hi": "सहेजा हुआ खाता • सत्यापन के लिए इंटरनेट जोड़ें"
+  },
+  "login_failed": {
+    "en": "Google sign-in failed. Please try again.",
+    "hi": "Google साइन इन नहीं हुआ। फिर कोशिश करें।"
+  },
+  "login_verify_failed": {
+    "en": "Could not verify sign-in. Check your connection and try again.",
+    "hi": "साइन इन सत्यापित नहीं हुआ। इंटरनेट जाँचें और फिर कोशिश करें।"
+  },
+  "login_again": {
+    "en": "Please sign in again to upload your saved results.",
+    "hi": "सहेजे नतीजे भेजने के लिए फिर साइन इन करें।"
+  },
   "deal_log": {"en": "Deal log", "hi": "बाज़ी का विवरण"},
   "review_completed_deal_decisions": {
     "en": "Review completed-deal decisions",

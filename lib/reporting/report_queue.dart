@@ -51,6 +51,9 @@ class CompletedReportQueue {
   final http.Client client;
   final Uri endpoint;
   final String uploadKey;
+  final void Function()? onUnauthorized;
+  final Future<Map<String, String>?> Function(Map<String, dynamic>)?
+      authorization;
   final DateTime Function() now;
   final Random random;
   final Duration timeout;
@@ -61,7 +64,9 @@ class CompletedReportQueue {
       {required this.store,
       required this.client,
       required this.endpoint,
-      required this.uploadKey,
+      this.uploadKey = '',
+      this.onUnauthorized,
+      this.authorization,
       DateTime Function()? now,
       Random? random,
       this.timeout = const Duration(seconds: 60)})
@@ -75,7 +80,9 @@ class CompletedReportQueue {
       throw ArgumentError(
           'Use an HTTPS API endpoint without credentials or query parameters');
     }
-    if (uploadKey.isEmpty) throw ArgumentError('Upload key is required');
+    if (uploadKey.isEmpty && authorization == null) {
+      throw ArgumentError('Authorization is required');
+    }
   }
 
   Future<T> _serial<T>(Future<T> Function() action) {
@@ -127,6 +134,16 @@ class CompletedReportQueue {
   Future<ReportFlushResult> flush() =>
       _inFlight ??= _flush().whenComplete(() => _inFlight = null);
 
+  Future<void> retryAfterSignIn() => _serial(() async {
+        final entries = await store.read();
+        for (final entry in entries) {
+          if (entry['lastStatus'] == 401 || entry['lastStatus'] == 403) {
+            entry['nextAttemptAt'] = now().toUtc().toIso8601String();
+          }
+        }
+        await store.write(entries);
+      });
+
   Future<ReportFlushResult> _flush() async {
     var sent = 0;
     final batch = await _serial(store.read);
@@ -139,15 +156,19 @@ class CompletedReportQueue {
       int? retryAfterSeconds;
       var acknowledged = false;
       try {
+        final headers = authorization != null
+            ? await authorization!(
+                Map<String, dynamic>.from(item['report'] as Map))
+            : <String, String>{'X-API-Key': uploadKey};
+        // Signed out, expired session, or another user's queued report: retain it.
+        if (headers == null) continue;
         final response = await client
             .post(endpoint,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-API-Key': uploadKey
-                },
+                headers: {'Content-Type': 'application/json', ...headers},
                 body: jsonEncode(item['report']))
             .timeout(timeout);
         status = response.statusCode;
+        if (status == 401) onUnauthorized?.call();
         retryAfterSeconds = int.tryParse(response.headers['retry-after'] ?? '');
         if (status == 200 || status == 201) {
           final body = jsonDecode(response.body);

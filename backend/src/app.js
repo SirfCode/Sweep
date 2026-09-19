@@ -2,6 +2,7 @@ import Fastify, { LogController } from 'fastify';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { transaction } from './database.js';
 import { reportBody, reportsQuery, statsQuery, userParams } from './schema.js';
+import { googleVerifier, googleUser } from './google-auth.js';
 
 const digest = value => createHash('sha256').update(value).digest();
 function auth(key) {
@@ -14,7 +15,10 @@ function auth(key) {
   };
 }
 
-export function buildApp({ pool, adminKey, uploadKey, logger = false }) {
+export function buildApp({ pool, adminKey, uploadKey, logger = false,
+  googleClientId = process.env.SEEP_GOOGLE_CLIENT_ID,
+  verifyGoogle = googleVerifier(googleClientId),
+  allowLegacyUploads = process.env.SEEP_ALLOW_LEGACY_UPLOADS === 'true' }) {
   if (!adminKey || !uploadKey || adminKey.length < 32 || uploadKey.length < 32 || adminKey === uploadKey) {
     throw new Error('Distinct ADMIN_API_KEY and SEEP_UPLOAD_API_KEY of at least 32 characters are required');
   }
@@ -23,6 +27,19 @@ export function buildApp({ pool, adminKey, uploadKey, logger = false }) {
     requestTimeout: 30000,
     ajv: { customOptions: { coerceTypes: false, removeAdditional: false } },
   });
+  const googleAuth = async (request, reply) => {
+    const header = request.headers.authorization;
+    if (typeof header !== 'string' || !header.startsWith('Bearer ') || header.length > 16384) {
+      return reply.code(401).send({ error: 'Google sign-in required' });
+    }
+    try { request.googleIdentity = await verifyGoogle(header.slice(7)); }
+    catch { return reply.code(401).send({ error: 'Google session expired or invalid; sign in again' }); }
+  };
+  app.decorateRequest('googleIdentity', null);
+  const reportAuth = async (request, reply) => {
+    if (request.headers.authorization || !allowLegacyUploads) return googleAuth(request, reply);
+    return auth(uploadKey)(request, reply);
+  };
   app.addHook('onSend', async (_request, reply, payload) => {
     reply.header('Cache-Control', 'no-store');
     reply.header('X-Content-Type-Options', 'nosniff');
@@ -41,17 +58,30 @@ export function buildApp({ pool, adminKey, uploadKey, logger = false }) {
     catch { return reply.code(503).send({ status: 'unavailable' }); }
   });
 
-  app.post('/api/seep/reports', { onRequest: auth(uploadKey), schema: { body: reportBody } }, async (request, reply) => {
+  app.post('/api/seep/auth/google', { onRequest: googleAuth }, async request => {
+    const user = await transaction(pool, client => googleUser(client, request.googleIdentity));
+    return { user };
+  });
+
+  app.post('/api/seep/reports', { onRequest: reportAuth, schema: { body: reportBody } }, async (request, reply) => {
     const b = request.body;
+    const identity = request.googleIdentity;
+    if (identity && (b.user.email.trim().toLowerCase() !== identity.email ||
+        (b.user.googleSubject && b.user.googleSubject !== identity.sub))) {
+      return reply.code(403).send({ error: 'Report belongs to another account' });
+    }
+    if (!identity && (b.user.email.trim().toLowerCase() !== 'player@example.com' || b.user.googleSubject)) {
+      return reply.code(403).send({ error: 'Legacy uploads are limited to the dummy account' });
+    }
     const userWon = b.winnerTeam === b.humanTeam;
     if (b.userWon !== undefined && b.userWon !== userWon) {
       return reply.code(400).send({ error: 'userWon must agree with humanTeam and winnerTeam' });
     }
     const result = await transaction(pool, async client => {
-      const user = await client.query(`INSERT INTO seep_users(email, display_name) VALUES ($1, $2)
+      const user = identity ? null : await client.query(`INSERT INTO seep_users(email, display_name) VALUES ($1, $2)
         ON CONFLICT(email) DO UPDATE SET display_name=COALESCE(EXCLUDED.display_name, seep_users.display_name)
         RETURNING id`, [b.user.email.trim().toLowerCase(), b.user.displayName?.trim() || null]);
-      const userId = user.rows[0].id;
+      const userId = identity ? (await googleUser(client, identity)).id : user.rows[0].id;
       const inserted = await client.query(`INSERT INTO seep_game_reports
         (user_id, client_game_id, app_version, platform, deal_count, human_team, winner_team,
          user_won, team0_total, team1_total, summary_json, game_log_json)

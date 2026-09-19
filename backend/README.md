@@ -6,15 +6,15 @@ Optional turn history is one JSON document inside the completed report.
 
 ## What is ready
 
-- Four authenticated API routes, strict request validation, parameterized SQL.
+- Google sign-in, authenticated report/admin routes, strict validation and parameterized SQL.
 - Transactional, concurrency-safe retry handling; first report wins.
 - SQL migration, migration runner, admin query examples and Render Blueprint.
 - Tested Android/native outbox and Flutter integration example.
 
 The API is deployed inside the existing What's for Dinner service and Postgres.
-See [Shared deployment](SHARED_DEPLOYMENT.md). Explicitly configured native builds
-upload completed games using a temporary dummy email. Unconfigured builds and web
-play remain offline. Public release still needs a proper identity/consent flow.
+See [Shared deployment](SHARED_DEPLOYMENT.md) and [Google setup](../GOOGLE_SIGN_IN.md).
+Signed-in Android players upload completed games using verified Google identity.
+Guest games and web play remain local.
 
 ## Run locally
 
@@ -25,6 +25,7 @@ npm ci
 $env:DATABASE_URL = 'postgresql://USER:PASSWORD@localhost:5432/seep'
 $env:ADMIN_API_KEY = 'REPLACE-WITH-A-RANDOM-ADMIN-KEY-AT-LEAST-32-CHARACTERS'
 $env:SEEP_UPLOAD_API_KEY = 'REPLACE-WITH-A-DIFFERENT-RANDOM-UPLOAD-KEY-32-CHARACTERS'
+$env:SEEP_GOOGLE_CLIENT_ID = 'YOUR-WEB-CLIENT-ID.apps.googleusercontent.com'
 npm run migrate
 npm start
 ```
@@ -43,7 +44,7 @@ reads process environment variables, not `.env` automatically. Default port is
    Supply DATABASE_URL for an existing same-region database as well.
 4. Review the plans, then deploy. The service runs `npm ci --omit=dev` and starts
    with `npm run migrate && npm start`. Verify its HTTPS `/health` endpoint.
-5. Configure the Flutter example with the service's HTTPS URL and upload-only key.
+5. Configure the Web OAuth client ID on the server and the HTTPS URL in Flutter.
 
 The active setup uses the existing Ohio database without a new subscription.
 Free web services can sleep; timeouts are safe to retry. The Android application
@@ -57,13 +58,15 @@ All application tables start with `seep_`. SQL is in `migrations/001_seep_report
 
 ## API
 
-Send JSON and `X-API-Key: <appropriate key>`. Authentication is checked before
+Send JSON. Upload/login use `Authorization: Bearer <Google ID token>`; admin
+routes use `X-API-Key: <admin key>`. Authentication is checked before
 processing request bodies. Uploads are limited to 2 MiB. Unknown top-level fields
 and wrong JSON types are rejected; summary and gameLog allow arbitrary objects.
 
 ### POST /api/seep/reports
 
-Use the **upload key**. See `examples/completed-report.json` for a compact example.
+Use a **Google ID token**. See `examples/completed-report.json` for payload shape;
+replace the sample identity with the authenticated user's email and Google subject.
 Required: user.email, clientGameId, dealCount, winnerTeam, team0Total, team1Total.
 humanTeam defaults to 0; userWon is derived (if supplied it must agree).
 summary defaults to `{}`; gameLog is optional. Team values are 0 or 1; scores
@@ -74,7 +77,7 @@ must be nonnegative integers. An unfinished game with no winner is rejected.
 ```
 
 201 means inserted, 200 means already received (`duplicate: true`). Email is
-trimmed/lowercased; a supplied nonempty display name updates the existing user.
+trimmed/lowercased and checked against Google; display name comes from Google.
 The transaction inserts the user/report and updates last_report_at together.
 Retries with the same normalized email and clientGameId return the original IDs
 without overwriting scores/logs or advancing last_report_at. Concurrent retries
@@ -84,7 +87,7 @@ Keep the email and ID in the queued snapshot; do not replace them on retry.
 PowerShell example (from `backend`, against your local service):
 
 ```powershell
-$headers = @{ 'X-API-Key' = $env:SEEP_UPLOAD_API_KEY }
+$headers = @{ 'Authorization' = "Bearer $env:GOOGLE_ID_TOKEN" }
 Invoke-RestMethod -Method Post -Uri http://localhost:10000/api/seep/reports `
   -Headers $headers -ContentType application/json `
   -Body (Get-Content -Raw examples/completed-report.json)
@@ -125,7 +128,7 @@ See `../examples/completed_game_upload.dart`, `../lib/reporting/completed_report
 and `../lib/reporting/report_queue.dart`. The `http`, `path_provider` and `uuid`
 dependencies and Android INTERNET permission are included.
 
-1. After opt-in/email collection, open one `ReportingExample` for the app session.
+1. Initialize GoogleSession, then open one `ReportingExample.open(session)`.
 2. When creating a new full game, generate `ReportingExample.newGameId()` once.
    Persist this ID **in the same save envelope as the game's state**, then start
    play. Restore that ID on resume; do not create one per deal or per retry.
@@ -136,7 +139,8 @@ dependencies and Android INTERNET permission are included.
 await reporting.gameFinished(
   game,
   clientGameId: savedGameId,
-  email: optedInEmail,
+  email: session.email!,
+  googleSubject: session.subject!,
   displayName: playerName,
   appVersion: '0.10.0+10', // Use your build's actual version.
 );
@@ -147,9 +151,9 @@ await reporting.gameFinished(
 5. Dispose the example when its owning session ends. It retries on launch/resume
    and once per minute while foregrounded. It does not run a background service.
 
-Configure a build with `--dart-define=SEEP_API_URL=https://YOUR-SERVICE.onrender.com`
-and `--dart-define=SEEP_UPLOAD_API_KEY=YOUR-UPLOAD-KEY`. These are extractable from
-the app; never substitute the admin key or database URL.
+The default build uses the shared service. Override with
+`--dart-define=SEEP_API_URL=https://YOUR-SERVICE.onrender.com` if needed.
+Never embed API keys, OAuth client secrets or database credentials in the app.
 
 The outbox is a file in native application support storage, flushed to a temporary
 file then replaced. It survives app restarts; uninstall/clearing app data removes
@@ -175,11 +179,11 @@ complete game log, and do not upload a live save after every move.
 
 ## Security scope
 
-The separate shared upload key meets the requested simple integration but is not
-player authentication: anyone who extracts it can submit someone else's email
-or fabricated scores. Admin routes remain separately protected. Before public
-account-based reporting/rankings, verify identity with an auth provider and derive
-user identity from its validated token. The schema/queries do not verify game
+Google signatures, issuer, audience, expiry and verified email are checked before
+login/uploads. Stable Google subject identifies the user. API-key-only uploads
+are disabled by default; explicitly enabling SEEP_ALLOW_LEGACY_UPLOADS permits
+only the dummy player@example.com identity. Admin routes remain separately
+protected. The schema/queries do not verify game
 replays or prevent cheating. Rate limiting and user data retention/deletion policy
 should be added for a public reporting service. There is no permissive CORS setup;
 the native Android example does not require it.

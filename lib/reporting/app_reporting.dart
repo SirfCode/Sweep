@@ -3,12 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'report_queue.dart';
+import '../auth/google_session.dart';
 
-/// Enabled only in explicitly configured native builds. Temporary dummy identity
-/// is for the owner's testing builds, not public account authentication.
+/// Native Google-authenticated completed-game uploads. Guest play stays local.
 class AppReporting with WidgetsBindingObserver {
-  static const email = String.fromEnvironment('SEEP_REPORT_EMAIL',
-      defaultValue: 'player@example.com');
   static const version =
       String.fromEnvironment('SEEP_APP_VERSION', defaultValue: '0.10.0+10');
   final CompletedReportQueue queue;
@@ -17,10 +15,9 @@ class AppReporting with WidgetsBindingObserver {
   Object? lastError;
   AppReporting._(this.queue, this.client);
 
-  static Future<AppReporting?> open() async {
-    const base = String.fromEnvironment('SEEP_API_URL');
-    const key = String.fromEnvironment('SEEP_UPLOAD_API_KEY');
-    if (kIsWeb || base.isEmpty || key.isEmpty) return null;
+  static Future<AppReporting?> open(GoogleSession session) async {
+    const base = GoogleSession.apiBase;
+    if (kIsWeb || !session.supported) return null;
     final store = await FileReportStore.inAppDirectory();
     final client = http.Client();
     final reporting = AppReporting._(
@@ -28,7 +25,8 @@ class AppReporting with WidgetsBindingObserver {
             store: store,
             client: client,
             endpoint: Uri.parse(base).resolve('/api/seep/reports'),
-            uploadKey: key),
+            authorization: session.headersFor,
+            onUnauthorized: session.sessionRejected),
         client);
     WidgetsBinding.instance.addObserver(reporting);
     reporting._resume();
@@ -40,8 +38,9 @@ class AppReporting with WidgetsBindingObserver {
     unawaited(retry());
   }
 
-  Future<void> retry() async {
+  Future<void> retry({bool afterSignIn = false}) async {
     try {
+      if (afterSignIn) await queue.retryAfterSignIn();
       await queue.flush();
       lastError = null;
     } catch (error) {

@@ -83,6 +83,63 @@ void main() {
     expect(payload.containsKey('gameLog'), false);
   });
 
+  test('Google uploads wait for the owning account and never persist tokens',
+      () async {
+    String? signedInSubject;
+    final sent = <String>[];
+    final uploader = CompletedReportQueue(
+        store: store,
+        client: MockClient((request) async {
+          expect(request.headers.containsKey('X-API-Key'), false);
+          expect(request.headers['Authorization'], 'Bearer fresh-token');
+          sent.add((jsonDecode(request.body) as Map)['clientGameId'] as String);
+          return ack(201);
+        }),
+        endpoint: Uri.parse('https://seep.example.com/api/seep/reports'),
+        authorization: (payload) async =>
+            (payload['user'] as Map)['googleSubject'] == signedInSubject &&
+                    signedInSubject != null
+                ? {'Authorization': 'Bearer fresh-token'}
+                : null);
+    await uploader.enqueue({
+      ...report('a'),
+      'user': {'email': 'a@gmail.com', 'googleSubject': 'a'}
+    });
+    await uploader.enqueue({
+      ...report('b'),
+      'user': {'email': 'b@gmail.com', 'googleSubject': 'b'}
+    });
+    expect((await uploader.flush()).sent, 0);
+    signedInSubject = 'b';
+    expect((await uploader.flush()).sent, 1);
+    expect(sent, ['b']);
+    expect(store.entries.single['report']['clientGameId'], 'a');
+    expect(jsonEncode(store.entries).contains('fresh-token'), false);
+    signedInSubject = 'a';
+    expect((await uploader.flush()).sent, 1);
+    expect(sent, ['b', 'a']);
+  });
+
+  test('expired authorization retains report and sign-in releases auth backoff',
+      () async {
+    var authorized = false;
+    var rejected = false;
+    final uploader = CompletedReportQueue(
+        store: store,
+        client: MockClient(
+            (_) async => authorized ? ack(200) : http.Response('{}', 401)),
+        endpoint: Uri.parse('https://seep.example.com/api/seep/reports'),
+        authorization: (_) async => {'Authorization': 'Bearer token'},
+        onUnauthorized: () => rejected = true);
+    await uploader.enqueue(report());
+    expect((await uploader.flush()).sent, 0);
+    expect(rejected, true);
+    authorized = true;
+    expect((await uploader.flush()).sent, 0);
+    await uploader.retryAfterSignIn();
+    expect((await uploader.flush()).sent, 1);
+  });
+
   test('enqueue is immutable, durable first, and deduplicated before network',
       () async {
     var calls = 0;

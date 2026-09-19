@@ -9,6 +9,7 @@ Seep shares the existing `whats-for-dinner` Node service and
 - Host health: GET /api/health
 - Deployment repository: https://github.com/SirfCode/whats-for-dinner
 - Integration commit: a61e2fb989a9d9da022bd00064bacbdbc0b0be13
+- Google authentication update: 72ffbe8ce2c76fd0d202bc11f0202b203c07c549
 
 The host's `backend/src/server.js` dispatches `/api/seep` requests to
 `backend/seep/src/shared-host.js` before its own authentication handlers.
@@ -34,17 +35,15 @@ changed. No database cleanup or destructive tests were run on the shared databas
 
 ## Android
 
-Native app builds can enable reporting with SEEP_API_URL, SEEP_UPLOAD_API_KEY,
-SEEP_REPORT_EMAIL (defaults to player@example.com), and SEEP_APP_VERSION compile
-definitions. The upload key is extractable from the APK; this configuration is
-intended for the owner's private testing, not public account authentication.
-Use an ignored local JSON file with `--dart-define-from-file=PATH` when building.
-Never include the admin key or database URL in that file or APK.
+Android uses Google sign-in and Bearer ID tokens. See ../GOOGLE_SIGN_IN.md.
+Set SEEP_GOOGLE_CLIENT_ID to the Web client ID and SEEP_ALLOW_LEGACY_UPLOADS=false
+on the shared host. Build normally without the old private-testing defines file.
+No shared key, admin key, client secret or database URL belongs in the APK.
 
 The game saves clientGameId alongside its existing saved state. It queues a report
 only after a full-game winner exists. Queue writes precede save replacement, and
 offline reports retry on app start/resume and periodically while foregrounded.
-Ordinary unconfigured builds and browser play do not upload. The game report
+Guest games and browser play do not upload. The game report
 currently contains totals/winner; detailed multi-deal event collection is optional
 and not enabled by this integration.
 

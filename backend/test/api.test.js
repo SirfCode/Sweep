@@ -9,7 +9,12 @@ import { buildApp } from '../src/app.js';
 if (!process.env.TEST_DATABASE_URL) throw new Error('Set TEST_DATABASE_URL to a disposable PostgreSQL database');
 const pool = createPool(process.env.TEST_DATABASE_URL);
 const adminKey = 'admin-test-key-'.repeat(4), uploadKey = 'upload-test-key-'.repeat(4);
-const app = buildApp({ pool, adminKey, uploadKey });
+const identities = new Map();
+const app = buildApp({ pool, adminKey, uploadKey, allowLegacyUploads: true,
+  verifyGoogle: async token => {
+    if (!identities.has(token)) throw new Error('Invalid token');
+    return identities.get(token);
+  } });
 const report = (overrides = {}) => ({
   user: { email: 'player@example.com', displayName: 'Player Name' },
   clientGameId: randomUUID(), appVersion: '0.10.0+10', platform: 'android',
@@ -17,11 +22,15 @@ const report = (overrides = {}) => ({
   summary: { deals: 3, totals: [152, 91], seeps: [4, 1] },
   gameLog: { v: 1, seed: 123, deals: [{ events: [['score', [74, 21]]] }] }, ...overrides,
 });
-const upload = body => app.inject({ method: 'POST', url: '/api/seep/reports', headers: { 'x-api-key': uploadKey }, payload: body });
+function tokenFor(email, sub = email, name = null) {
+  const token = randomUUID(); identities.set(token, {email: email.trim().toLowerCase(), sub, name}); return token;
+}
+const upload = body => app.inject({ method: 'POST', url: '/api/seep/reports',
+  headers: { authorization: `Bearer ${tokenFor(body.user?.email ?? 'player@example.com', body.user?.email?.trim().toLowerCase(), body.user?.displayName ?? null)}` }, payload: body });
 const admin = (url, method = 'GET', payload) => app.inject({ url, method, payload, headers: { 'x-api-key': adminKey } });
 
 before(async () => { await migrate(pool); await migrate(pool); await app.ready(); });
-beforeEach(async () => { await pool.query('TRUNCATE seep_game_reports, seep_users CASCADE'); });
+beforeEach(async () => { identities.clear(); await pool.query('TRUNCATE seep_game_reports, seep_users CASCADE'); });
 after(async () => { await app.close(); await pool.end(); });
 
 test('schema uses only seep_ tables and has the required indexes', async () => {
@@ -139,4 +148,37 @@ test('analysis gates optional logs; reports are newest first and paginated', asy
   assert.equal((await admin(`${url}/reports?includeGameLog=true&limit=10`)).statusCode, 403);
   assert.equal((await admin(`/api/seep/admin/users/${randomUUID()}/reports`)).statusCode, 404);
   assert.equal((await admin('/api/seep/admin/users/not-a-uuid/reports')).statusCode, 400);
+});
+
+test('Google login persists verified identity; email changes keep the same account', async () => {
+  const login = token => app.inject({method:'POST', url:'/api/seep/auth/google', headers:{authorization:`Bearer ${token}`}});
+  const first = await login(tokenFor('first@gmail.com', 'google-123', 'Google Name'));
+  assert.equal(first.statusCode, 200);
+  const second = await login(tokenFor('new@gmail.com', 'google-123', 'Updated Name'));
+  assert.equal(second.json().user.id, first.json().user.id);
+  assert.equal(second.json().user.googleSubject, 'google-123');
+  assert.equal(second.json().user.email, 'new@gmail.com');
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM seep_users')).rows[0].n, 1);
+});
+
+test('forged email/subject and invalid bearer cannot impersonate another user', async () => {
+  const token = tokenFor('owner@gmail.com', 'owner-sub', 'Verified Name');
+  const send = body => app.inject({method:'POST', url:'/api/seep/reports', headers:{authorization:`Bearer ${token}`},payload:body});
+  assert.equal((await send(report())).statusCode, 403);
+  assert.equal((await send(report({user:{email:'owner@gmail.com',googleSubject:'other-sub'}}))).statusCode, 403);
+  const valid = await send(report({user:{email:'owner@gmail.com',googleSubject:'owner-sub',displayName:'Forged Name'}}));
+  assert.equal(valid.statusCode, 201);
+  assert.equal((await pool.query('SELECT display_name FROM seep_users')).rows[0].display_name,'Verified Name');
+  const invalid = await app.inject({method:'POST',url:'/api/seep/reports',payload:report(),
+    headers:{authorization:'Bearer invalid', 'x-api-key':uploadKey}});
+  assert.equal(invalid.statusCode,401);
+  assert.equal((await app.inject({method:'POST',url:'/api/seep/auth/google',headers:{'x-api-key':uploadKey}})).statusCode,401);
+});
+
+test('legacy access is restricted to dummy account and disabled by default', async () => {
+  assert.equal((await app.inject({method:'POST',url:'/api/seep/reports',headers:{'x-api-key':uploadKey},payload:report({user:{email:'real@gmail.com'}})})).statusCode,403);
+  const secure = buildApp({pool, adminKey, uploadKey});
+  try {
+    assert.equal((await secure.inject({method:'POST',url:'/api/seep/reports',headers:{'x-api-key':uploadKey},payload:report()})).statusCode,401);
+  } finally {await secure.close();}
 });

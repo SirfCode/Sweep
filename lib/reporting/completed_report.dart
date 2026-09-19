@@ -7,6 +7,7 @@ Map<String, dynamic> completedGameReport({
   required String email,
   required String appVersion,
   String? displayName,
+  String? googleSubject,
   String platform = 'android',
   Map<String, dynamic>? fullGameLog,
 }) {
@@ -14,7 +15,11 @@ Map<String, dynamic> completedGameReport({
     throw StateError('Only a completed full game can be reported');
   }
   return {
-    'user': {'email': email.trim().toLowerCase(), 'displayName': displayName},
+    'user': {
+      'email': email.trim().toLowerCase(),
+      'displayName': displayName,
+      if (googleSubject != null) 'googleSubject': googleSubject
+    },
     'clientGameId': clientGameId,
     'appVersion': appVersion,
     'platform': platform,

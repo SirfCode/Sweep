@@ -1,4 +1,4 @@
-package com.example.sweep
+package com.nzkosh.seep
 
 import io.flutter.embedding.android.FlutterActivity
 

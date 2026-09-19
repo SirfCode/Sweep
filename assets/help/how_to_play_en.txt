@@ -1,0 +1,23 @@
+You + Shak vs Nishu + JLo
+Collect points together. Your team wins when it leads by 104 points after a deal.
+
+YOUR TURN
+Tap a card, choose a highlighted move, then confirm. Play one card each turn.
+
+• Capture: take matching cards or groups that add up to your card. A 10 can take a 10 and a 6 + 4.
+• Build: combine cards into a house worth 9–13. Keep a matching card to capture it later. Opponents can capture it too!
+• Raise: increase an ordinary house while keeping a card of its new value. A pakka house cannot be raised.
+• Throw: leave a card on the table when it cannot capture. The app shows your legal choices.
+
+THE OPENING CALL
+The starting player calls 9–13 using a rank in their hand. Their first move must follow that call. A = 1, J = 11, Q = 12, K = 13.
+
+POINTS & SEEPS
+Spades score their value; other Aces score 1; ♦10 scores 6. Other cards score 0.
+Clear the table to earn a seep: 25 on the first play, 50 later, none on the final play. Your team needs at least 20 card points that deal to keep seep bonuses.
+
+QUICK TIP
+Protect your partner’s houses and avoid leaving an easy seep. Tap a player to see their latest capture; open Scores for the totals.
+
+COMING LATER
+Stronger bots for signed-in players are planned. They are not available yet.

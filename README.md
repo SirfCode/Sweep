@@ -6,8 +6,9 @@ An offline Flutter card game planned for Android first, then iPhone. One human a
 
 See [Backend and Android upload guide](backend/README.md) for the Render/Postgres
 API, SQL migrations, admin stats and offline retry support. The API shares the
-existing What's for Dinner service and Postgres. Configured native testing builds
-upload completed games using a dummy email; ordinary builds remain offline.
+existing What's for Dinner service and Postgres. Android players can sign in with
+Google to upload completed games; guest play stays local. See
+[Google sign-in setup](GOOGLE_SIGN_IN.md) for account configuration and testing.
 
 ## Bot strategy (development)
 
@@ -31,7 +32,7 @@ Includes 17 offline CC0 sound effects with randomized card variations, gesture u
 
 This release is the free guest version: play without signing in, against three bots. Progress is saved locally on the current device/browser; no account is required.
 
-Playable offline partnership Seep: one human, a bot partner (Shak), and two opponent bots (Nishu and JLo). Includes opening calls, all four move types, ordinary and pakka houses, commitments, seeps, deal scoring, cumulative games, dealer rotation, and save/resume. The rulebook is available inside the app.
+Playable offline partnership Seep: one human, a bot partner (Shak), and two opponent bots (Nishu and JLo). Includes opening calls, all four move types, ordinary and pakka houses, commitments, seeps, deal scoring, cumulative games, dealer rotation, and save/resume. A short How to play guide is available in the game menu. Full English and Hindi rulebooks remain developer references in the repository and are not bundled in the app.
 
 The current development layout gives most of the screen to the felt table and cards. Shak, Nishu and JLo use small half-circle markers at the table edges; your hand identifies your own seat. Table cards, house stacks, and the animated played card are enlarged. The wooden border and toolbar are compact, and action controls appear only while choosing a move. The existing card artwork is unchanged.
 
@@ -41,7 +42,7 @@ Tap a hand card, then a highlighted table target or a visual move option. The go
 
 Tap any bot's player icon, or **You** beside your remaining-card count, to view that player's latest capture. The popup shows the captured cards including their played card, card points and any provisional seep bonus. It pauses play, retains only the latest capture per player, survives save/resume and resets each deal. Throws and builds do not replace it; end-of-deal leftover awards are not a capturing turn. Older saves recover captures from public decision records when available.
 
-Turns animate the played card onto the table, pause, then gather the affected cards into a capture or house. Normal bot turns take about 3.6 seconds; the speed menu offers Slow (about 5.8 seconds) and Fast (about 1.8 seconds), remembered between sessions. Speed changes apply to subsequent moves. Pause freezes the current animation. Opening the rulebook, deal log, or house details also pauses play. Returning home during an animation retains the last completed turn; Resume continues from that saved position. Existing 0.1 saves remain compatible.
+Turns animate the played card onto the table, pause, then gather the affected cards into a capture or house. Normal bot turns take about 3.6 seconds; the speed menu offers Slow (about 5.8 seconds) and Fast (about 1.8 seconds), remembered between sessions. Speed changes apply to subsequent moves. Pause freezes the current animation. Opening How to play, the deal log, or house details also pauses play. Returning home during an animation retains the last completed turn; Resume continues from that saved position. Existing 0.1 saves remain compatible.
 
 After a bot calls 9–13 and the table is revealed, the game gives you 20 seconds to study the cards before the opening move. This viewing pause is independent of the speed setting and restarts when resuming an opening bot turn. Your own opening turn has no time limit: play continues only after you confirm your move.
 

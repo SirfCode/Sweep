@@ -9,6 +9,7 @@ export const reportBody = {
       properties: {
         email: { type: 'string', minLength: 3, maxLength: 254, pattern: '^\\s*[^\\s@]+@[^\\s@]+\\.[^\\s@]+\\s*$' },
         displayName: { type: ['string', 'null'], maxLength: 100 },
+        googleSubject: { type: 'string', minLength: 1, maxLength: 255 },
       },
     },
     clientGameId: { type: 'string', minLength: 1, maxLength: 128, pattern: '^\\S+$' },

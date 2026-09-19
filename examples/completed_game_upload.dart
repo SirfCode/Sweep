@@ -6,10 +6,9 @@ import 'package:uuid/uuid.dart';
 import 'package:sweep/game/engine.dart';
 import 'package:sweep/reporting/completed_report.dart';
 import 'package:sweep/reporting/report_queue.dart';
+import 'package:sweep/auth/google_session.dart';
 
-/// Instantiate only after the player opts in and supplies their email.
-/// The upload key is NOT a user credential. Never put ADMIN_API_KEY or
-/// DATABASE_URL in Flutter. See backend/README.md for the shared-key limits.
+/// Use the app's Google session. Never embed server keys or database credentials.
 class ReportingExample with WidgetsBindingObserver {
   final CompletedReportQueue queue;
   final http.Client client;
@@ -19,18 +18,15 @@ class ReportingExample with WidgetsBindingObserver {
   ReportFlushResult? lastResult;
   ReportingExample._(this.queue, this.client);
 
-  static Future<ReportingExample> open() async {
-    const base = String.fromEnvironment('SEEP_API_URL');
-    const uploadKey = String.fromEnvironment('SEEP_UPLOAD_API_KEY');
-    if (base.isEmpty || uploadKey.isEmpty) {
-      throw StateError('Configure the API URL and upload key');
-    }
+  static Future<ReportingExample> open(GoogleSession session) async {
+    const base = GoogleSession.apiBase;
     final client = http.Client();
     final queue = CompletedReportQueue(
         store: await FileReportStore.inAppDirectory(),
         client: client,
         endpoint: Uri.parse(base).resolve('/api/seep/reports'),
-        uploadKey: uploadKey);
+        authorization: session.headersFor,
+        onUnauthorized: session.sessionRejected);
     final example = ReportingExample._(queue, client);
     WidgetsBinding.instance.addObserver(example);
     example._resume();
@@ -46,6 +42,7 @@ class ReportingExample with WidgetsBindingObserver {
   Future<void> gameFinished(SweepGame game,
       {required String clientGameId,
       required String email,
+      required String googleSubject,
       required String appVersion,
       String? displayName,
       Map<String, dynamic>? fullGameLog}) async {
@@ -53,6 +50,7 @@ class ReportingExample with WidgetsBindingObserver {
         game: game,
         clientGameId: clientGameId,
         email: email,
+        googleSubject: googleSubject,
         displayName: displayName,
         appVersion: appVersion,
         fullGameLog: fullGameLog));
