@@ -61,7 +61,9 @@ token. Sign-out clears the session; unsent reports stay queued for their origina
 account and cannot upload under another account. A successful sign-in retries
 authentication-blocked reports. Uninstalling removes local saves and the outbox.
 
-Reports currently include totals/winner, not a complete multi-deal replay.
+Reports include totals/winner. Signed-in human-team wins also include the local
+full-game journal as gameLog, regardless of the user's analysis-enabled flag.
+New games record all deals; older resumed saves mark missing history incomplete.
 Authentication proves identity, not the correctness of client-submitted scores.
 Web and Windows gameplay continue as guests; Google login here targets Android.
 

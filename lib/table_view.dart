@@ -203,7 +203,7 @@ extension _TableView on _SweepScreenState {
                         ? textFor('called_s_to_study_the_table', {
                             'p0': playerName(context, g.turn),
                             'p1': g.calledValue,
-                            'p2': widget.openingDelay.inSeconds
+                            'p2': _openingSeconds
                           })
                         : (human &&
                                 g.phase != Phase.call &&
@@ -773,7 +773,7 @@ extension _TableView on _SweepScreenState {
                                     children: [
                                       Text(_moveLabel(m),
                                           style: TextStyle(
-                                              color: cream, fontSize: 11)),
+                                              color: cream, fontSize: 13)),
                                       if (!compact)
                                         SizedBox(
                                             height: 48,
@@ -808,8 +808,12 @@ extension _TableView on _SweepScreenState {
               key: Key('confirm-move'),
               onPressed: _canPlay ? () => _play(move) : null,
               style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF9DEA83),
+                  foregroundColor: const Color(0xFF12351D),
+                  elevation: 2,
                   padding: const EdgeInsets.symmetric(horizontal: 12)),
-              child: Text(_moveLabel(move))),
+              child:
+                  Text(_moveLabel(move), style: const TextStyle(fontSize: 16))),
         ]));
   }
 

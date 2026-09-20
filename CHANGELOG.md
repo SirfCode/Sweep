@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0
+
+- Record a persistent full-game journal and include it in signed-in human-team winning reports, regardless of the user's analysis flag. Preserve logs through offline retries and mark older saves with incomplete history.
+- Allow throwing the called-rank opening card when a house is possible but capture is not; update the rulebook and regression tests.
+- Enlarge action-bar labels, use a light-green confirmation button, and show a live opening countdown in English and Hindi.
+
 ## 0.10.0
 
 - Rename Mira to Nishu, Ari to Shak, and Dev to JLo across player labels, team scores, translations, and saved-history display.

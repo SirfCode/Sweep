@@ -35,6 +35,6 @@ Map<String, dynamic> completedGameReport({
       'userWon': game.winner == 0,
       'totals': List<int>.of(game.totals),
     },
-    if (fullGameLog != null) 'gameLog': fullGameLog,
+    if (game.winner == 0 && fullGameLog != null) 'gameLog': fullGameLog,
   };
 }

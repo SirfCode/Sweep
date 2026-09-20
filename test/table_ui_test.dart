@@ -278,12 +278,14 @@ void main() {
             of: find.byKey(const Key('table-call')),
             matching: find.text(rankName(saved(prefs).calledValue!))),
         findsOneWidget);
-    expect(find.textContaining('20s to study the table'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 19));
-    expect(saved(prefs).plays, 0);
-    expect(find.textContaining('20s to study the table'), findsOneWidget);
+    expect(find.textContaining('Next move in 20s'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.textContaining('20s to study the table'), findsNothing);
+    expect(find.textContaining('Next move in 19s'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 18));
+    expect(saved(prefs).plays, 0);
+    expect(find.textContaining('Next move in 1s'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining('Next move in'), findsNothing);
     await tester.pump(const Duration(milliseconds: 1100));
     await tester.pump();
     expect(saved(prefs).plays, 1);

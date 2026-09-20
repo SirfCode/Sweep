@@ -222,14 +222,10 @@ class Position {
           }
         }
       }
-      if (!canCapture && phase != Phase.opening) {
+      // Building with another card does not oblige the caller to build.
+      // The called-rank card may be thrown unless it can capture.
+      if (!canCapture && (phase != Phase.opening || rank == call)) {
         add(Move(MoveKind.discard, card, rank));
-      }
-    }
-    // The called-rank discard is allowed only if NO called-value capture/build exists.
-    if (phase == Phase.opening && result.isEmpty) {
-      for (final card in hand.where((c) => rankOf(c) == call)) {
-        add(Move(MoveKind.discard, card, call!));
       }
     }
     return result.values.toList();

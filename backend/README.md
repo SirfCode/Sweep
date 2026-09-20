@@ -116,7 +116,8 @@ Logs are excluded unless `includeGameLog=true`; this also requires that user's
 analysis flag to be enabled. With logs, the default and maximum limit are 10.
 The flag controls **API access to logs**, not collection: a supplied gameLog is
 stored regardless of the flag. Disabling analysis does not delete stored logs.
-Omit gameLog when the player has not agreed to detailed collection.
+The Android app automatically attaches the full-game log for signed-in human-team
+wins, regardless of this flag. Losses contain a summary only; guests remain local.
 
 401 = missing/wrong key; 400 = invalid input; 404 = unknown user; 403 = analysis
 not enabled for log retrieval; 413 = oversized report; 503 = transient service
@@ -169,13 +170,20 @@ blocked entry for inspection rather than retrying forever. Surface lastError and
 lastResult in your eventual settings UI. Blocked-entry editing/recovery UI is not
 included. The queue caps at 50 reports and never silently evicts unsent reports.
 
-The builder intentionally supplies totals and winner only. The game currently
-retains diagnostics for just the current/previous deal, so it cannot reconstruct
-a complete multi-deal log or cumulative seep counts from those diagnostics.
-If detailed analysis is wanted, collect compact hands/table/events and per-deal
-scores locally for the full game, persist them with the save, and pass that object
-as fullGameLog at completion. Do not label the existing truncated diagnostics a
-complete game log, and do not upload a live save after every move.
+`lib/reporting/game_log.dart` keeps a separate local journal for every deal,
+persisted with the game save. Each deal includes its starting engine snapshot
+(hands, table and remaining deck), call, committed moves and final scores.
+Play events contain seat, move kind, card, value, loose-card groups, house indexes
+and raised-house index. These allow replay with the rules engine. No per-turn
+network requests are made. At full-game completion, human-team wins include this
+object as `gameLog`; losses upload only the normal summary. The existing durable
+offline queue retains the complete payload until an acknowledged upload.
+
+New games have `complete: true`. Games resumed from older saves start recording
+from the available snapshot and use `complete: false`, because earlier moves
+cannot be recovered. Already uploaded reports remain immutable on duplicate
+retry. Guest games are not uploaded. Before public release, reflect this
+collection in the app's privacy policy and store disclosures.
 
 ## Security scope
 

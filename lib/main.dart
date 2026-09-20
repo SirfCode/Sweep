@@ -15,6 +15,7 @@ import 'table_art.dart';
 import 'package:uuid/uuid.dart';
 import 'reporting/app_reporting.dart';
 import 'reporting/completed_report.dart';
+import 'reporting/game_log.dart';
 import 'auth/google_session.dart';
 export 'table_art.dart' show CardFace, CardBack;
 part 'table_view.dart';
@@ -223,10 +224,13 @@ class _SweepScreenState extends State<SweepScreen>
   String? _error;
   String? _saveError;
   Timer? _botTimer;
+  Timer? _openingCountdown;
+  int _openingSeconds = 0;
   Future<void> _saveQueue = Future.value();
   late final Future<AppReporting?> _reporting;
   late final GoogleSession _session;
   Map<String, dynamic>? _completedReport;
+  GameLog? _gameLog;
   String _clientGameId = const Uuid().v4();
   late final AnimationController _motion;
   Move? _moving;
@@ -254,6 +258,7 @@ class _SweepScreenState extends State<SweepScreen>
   Future<void> _overlay(Future<void> Function() open) async {
     final wasPaused = _paused;
     _botTimer?.cancel();
+    _openingCountdown?.cancel();
     _motion.stop();
     setState(() => _paused = true);
     try {
@@ -279,6 +284,7 @@ class _SweepScreenState extends State<SweepScreen>
     if (_paused || _moving != null) return;
     unawaited(_sfx.play(Sfx.play));
     _botTimer?.cancel();
+    _openingCountdown?.cancel();
     setState(() {
       _moving = move;
       _movingAnalysis = analysis;
@@ -349,6 +355,7 @@ class _SweepScreenState extends State<SweepScreen>
     setState(() => _paused = !_paused);
     if (_paused) {
       _botTimer?.cancel();
+      _openingCountdown?.cancel();
       _motion.stop();
     } else if (_moving != null || _leftoverCards.isNotEmpty) {
       _motion.forward();
@@ -383,6 +390,10 @@ class _SweepScreenState extends State<SweepScreen>
       try {
         final data = jsonDecode(saved) as Map<String, dynamic>;
         _game = SweepGame.fromJson(data);
+        _gameLog = data['fullGameLog'] is Map
+            ? GameLog.restore(
+                Map<String, dynamic>.from(data['fullGameLog'] as Map))
+            : GameLog.start(_game!);
         _gameDifficulty = BotDifficulty.restore(data['botDifficulty'],
             signedIn: _session.subject != null);
         _clientGameId = data['clientGameId'] as String? ?? const Uuid().v4();
@@ -403,6 +414,7 @@ class _SweepScreenState extends State<SweepScreen>
     unawaited(
         _reporting.then<void>((r) => r?.dispose(), onError: (Object _) {}));
     _botTimer?.cancel();
+    _openingCountdown?.cancel();
     _motion.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -422,6 +434,7 @@ class _SweepScreenState extends State<SweepScreen>
       }
     } else {
       _botTimer?.cancel();
+      _openingCountdown?.cancel();
       _motion.stop();
       _save();
     }
@@ -440,13 +453,15 @@ class _SweepScreenState extends State<SweepScreen>
           email: _session.email!,
           googleSubject: _session.subject,
           displayName: _session.user?['displayName'] as String?,
-          appVersion: AppReporting.version);
+          appVersion: AppReporting.version,
+          fullGameLog: _gameLog?.toJson());
     }
     final report = _completedReport;
     final encoded = jsonEncode({
       ..._game!.toJson(),
       'clientGameId': _clientGameId,
       'botDifficulty': _gameDifficulty.name,
+      if (_gameLog != null) 'fullGameLog': _gameLog!.toJson(),
       if (report != null) 'completedReport': report
     });
     _saveQueue = _saveQueue.then((_) async {
@@ -467,6 +482,7 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _scheduleBot() {
     _botTimer?.cancel();
+    _openingCountdown?.cancel();
     if (_leftoverCards.isNotEmpty) return;
     final g = _game;
     if (mounted &&
@@ -505,6 +521,18 @@ class _SweepScreenState extends State<SweepScreen>
     // Keep the revealed opening table visible before a bot acts. Speed settings
     // affect subsequent turns, not this time reserved for understanding the deal.
     final delay = g.phase == Phase.opening ? widget.openingDelay : _duration(1);
+    if (g.phase == Phase.opening) {
+      _openingSeconds = (delay.inMilliseconds / 1000).ceil();
+      _openingCountdown = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        setState(() => _openingSeconds =
+            ((delay.inMilliseconds / 1000).ceil() - timer.tick).clamp(0, 999));
+        if (_openingSeconds == 0) timer.cancel();
+      });
+    }
     _botTimer = Timer(delay, () {
       if (!mounted || _atHome || !_foreground) return;
       final bot =
@@ -527,8 +555,13 @@ class _SweepScreenState extends State<SweepScreen>
     final oldDeal = _game?.dealNumber;
     final oldPhase = _game?.phase;
     final oldTurn = _game?.turn;
+    final committedMove = _moving;
     try {
       setState(action);
+      if (_game != null) {
+        if (_game != oldGame) _gameLog = GameLog.start(_game!);
+        _gameLog?.record(_game!, move: committedMove);
+      }
       if (_game != oldGame ||
           _game?.dealNumber != oldDeal ||
           (oldPhase == Phase.opening && _game?.phase == Phase.playing)) {
@@ -548,6 +581,7 @@ class _SweepScreenState extends State<SweepScreen>
       unawaited(_sfx.play(Sfx.invalid));
       setState(() => _error = textFor('play_paused', {'p0': e}));
       _botTimer?.cancel();
+      _openingCountdown?.cancel();
     }
   }
 
@@ -579,6 +613,7 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _startFreshGame() {
     _botTimer?.cancel();
+    _openingCountdown?.cancel();
     _motion.stop();
     _moving = null;
     _movingAnalysis = null;
@@ -601,6 +636,7 @@ class _SweepScreenState extends State<SweepScreen>
   void _home() {
     _sfx.stop();
     _botTimer?.cancel();
+    _openingCountdown?.cancel();
     _motion.stop();
     _moving = null;
     _showingFinalMove = false;

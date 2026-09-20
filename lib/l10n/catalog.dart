@@ -63,8 +63,8 @@ const messageCatalog = {
     "hi": "खेल रुका है — आराम से देखें"
   },
   "called_s_to_study_the_table": {
-    "en": "{p0} called {p1} · {p2}s to study the table",
-    "hi": "{p0} की बोली {p1} · मेज़ देखने के लिए {p2} सेकंड"
+    "en": "{p0} called {p1} · Next move in {p2}s",
+    "hi": "{p0} की बोली {p1} · अगली चाल {p2} सेकंड में"
   },
   "your_turn": {"en": "Your turn · {p0}", "hi": "आपकी बारी · {p0}"},
   "choose_your_opening_call": {

@@ -73,6 +73,15 @@ test('simultaneous retries produce exactly one report', async () => {
   assert.equal((await pool.query('SELECT * FROM seep_game_reports')).rowCount, 1);
 });
 
+test('human win log is stored even when user analysis is disabled', async () => {
+  const body = report();
+  assert.equal((await upload(body)).statusCode, 201);
+  const user = (await pool.query('SELECT analysis_enabled FROM seep_users')).rows[0];
+  assert.equal(user.analysis_enabled, false);
+  const stored = (await pool.query('SELECT game_log_json FROM seep_game_reports')).rows[0];
+  assert.deepEqual(stored.game_log_json, body.gameLog);
+});
+
 test('same client id is scoped to user; deletion cascades', async () => {
   const body = report();
   const first = (await upload(body)).json();

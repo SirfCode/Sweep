@@ -281,7 +281,7 @@ void main() {
     expect(moves.any((m) => m.card == c(13) && m.kind == MoveKind.discard),
         isTrue);
   });
-  test('opening move follows call and discards only as fallback', () {
+  test('opening move follows call and cannot throw when capture exists', () {
     final p = position(
         [c(9), c(4), c(2), c(1)], [c(5), c(4, 1), c(2, 1), c(13)],
         phase: Phase.opening, call: 9);
@@ -295,6 +295,21 @@ void main() {
         phase: Phase.opening, call: 9);
     expect(fallback.legalMoves().single.kind, MoveKind.discard);
     expect(fallback.legalMoves().single.card, c(9));
+  });
+  test('opening caller can throw called rank despite an available house', () {
+    for (var call = 9; call <= 13; call++) {
+      final p = position([c(call), c(4), c(2), c(1)], [c(call - 4, 1)],
+          phase: Phase.opening, call: call);
+      final moves = p.legalMoves();
+      expect(
+          moves.any((m) => m.kind == MoveKind.build && m.value == call), true);
+      expect(moves.any((m) => m.kind == MoveKind.discard), true);
+      expect(
+          moves
+              .where((m) => m.kind == MoveKind.discard)
+              .every((m) => m.card == c(call)),
+          true);
+    }
   });
   test('partner can add their only matching card without a new commitment', () {
     final p = position([

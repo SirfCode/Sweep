@@ -239,6 +239,31 @@ void main() {
     expect(store.entries.single['report']['clientGameId'], 'game-one');
   });
 
+  test('offline retry preserves the winning game log across queue restart',
+      () async {
+    final payload = report()
+      ..['gameLog'] = {
+        'v': 1,
+        'deals': [
+          {
+            'events': [
+              ['call', 0, 11]
+            ]
+          }
+        ]
+      };
+    final offline = queue((_) => throw const SocketException('Offline'));
+    await offline.enqueue(payload);
+    await offline.flush();
+    time = time.add(const Duration(hours: 7));
+    final restored = queue((request) {
+      expect(jsonDecode(request.body), payload);
+      return ack(201);
+    });
+    expect((await restored.flush()).sent, 1);
+    expect(store.entries, isEmpty);
+  });
+
   test('storage failure surfaces to caller without attempting upload',
       () async {
     store.fail = true;

@@ -51,9 +51,9 @@ The opening move must follow the called value:
 
 - **Build:** Use one hand card to build a house of the called value, retaining a matching-rank card.
 - **Capture:** Play a card of the called rank and capture all eligible table cards and combinations of that value.
-- **Throw:** Only if neither building nor capturing the called value is possible, play the called-rank card as a loose table card.
+- **Throw:** If the called-rank card cannot capture, it may be played as a loose table card even when another hand card could build a house of the called value.
 
-If both building and capturing are possible, Player 1 may choose either. Capture opportunities at other values do not override the call.
+If both building and capturing are possible, Player 1 may choose either, but cannot throw the called-rank card. If only building and throwing are possible, either is allowed. Capture opportunities at other values do not override the call.
 
 After the opening move, deal two more rounds of four cards per player, in the order Player 1, Player 2, Player 3, Player 0. The deck is now exhausted.
 
