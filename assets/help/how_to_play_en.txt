@@ -1,4 +1,4 @@
-You + Shak vs Nishu + JLo
+Your team versus the bot team
 Collect points together. Your team wins when it leads by 104 points after a deal.
 
 YOUR TURN
@@ -19,5 +19,5 @@ Clear the table to earn a seep: 25 on the first play, 50 later, none on the fina
 QUICK TIP
 Protect your partner’s houses and avoid leaving an easy seep. Tap a player to see their latest capture; open Scores for the totals.
 
-COMING LATER
-Stronger bots for signed-in players are planned. They are not available yet.
+BOT DIFFICULTY
+Guests play Easy bots. Signing in starts a fresh game with stronger bots. Medium and Hard are coming later.

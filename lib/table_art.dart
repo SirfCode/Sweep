@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'game/engine.dart';
 import 'l10n/strings.dart';
 
-const gold = Color(0xFFE8C889);
+const gold = Color(0xFFF0D294);
 const ink = Color(0xFF102D27);
 const felt = Color(0xFF194C40);
 const cream = Color(0xFFF7F0DE);
@@ -95,6 +95,7 @@ class CardFace extends StatelessWidget {
       label: tr(context, 'card_points_2',
           {'p0': cardName(card), 'p1': cardOf(card).points}),
       button: onTap != null,
+      selected: highlighted,
       child: Tooltip(
         message: cardName(card),
         child: Material(
@@ -111,14 +112,15 @@ class CardFace extends StatelessWidget {
                 borderRadius: BorderRadius.circular(7),
                 border: Border.all(
                   color: highlighted ? gold : const Color(0xFF77796D),
-                  width: highlighted ? 3 : 1,
+                  width: highlighted ? 4 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: highlighted
-                        ? gold.withValues(alpha: .4)
+                        ? gold.withValues(alpha: .65)
                         : Colors.black38,
-                    blurRadius: highlighted ? 12 : 4,
+                    blurRadius: highlighted ? 16 : 4,
+                    spreadRadius: highlighted ? 2 : 0,
                     offset: const Offset(0, 3),
                   ),
                 ],
@@ -534,6 +536,7 @@ class HouseStack extends StatelessWidget {
       label:
           '${house.pakka ? tr(context, 'pakka') : tr(context, 'house')} ${house.value}, ${house.owners.map((s) => playerName(context, s)).join(', ')}',
       button: true,
+      selected: highlighted,
       child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
@@ -543,9 +546,16 @@ class HouseStack extends StatelessWidget {
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                      color: highlighted ? gold : Colors.transparent, width: 2),
+                      color: highlighted ? gold : Colors.transparent, width: 4),
+                  boxShadow: highlighted
+                      ? [
+                          BoxShadow(
+                              color: gold.withValues(alpha: .35),
+                              blurRadius: 14)
+                        ]
+                      : [],
                   color: highlighted
-                      ? gold.withValues(alpha: .1)
+                      ? gold.withValues(alpha: .22)
                       : Colors.transparent),
               child: Stack(children: [
                 for (var i = 0; i < math.min(3, house.cards.length); i++)

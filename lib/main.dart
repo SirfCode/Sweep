@@ -9,7 +9,7 @@ import 'l10n/play_guide.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'game/bot.dart';
+import 'game/difficulty.dart';
 import 'game/engine.dart';
 import 'table_art.dart';
 import 'package:uuid/uuid.dart';
@@ -27,6 +27,8 @@ Future<void> main() async {
 const saveKey = 'sweep.game.v1';
 
 class SweepApp extends StatefulWidget {
+  final GoogleSession? session;
+
   /// Optional externally-owned manager for tests or embedding.
   final SfxManager? sfxManager;
   final SharedPreferences preferences;
@@ -34,6 +36,7 @@ class SweepApp extends StatefulWidget {
   final Duration openingDelay;
   const SweepApp(
       {super.key,
+      this.session,
       this.sfxManager,
       required this.preferences,
       this.botDelay = const Duration(milliseconds: 1500),
@@ -124,6 +127,7 @@ class _AppState extends State<SweepApp> {
                       backgroundColor: gold,
                       foregroundColor: ink))),
           home: SweepScreen(
+              session: widget.session,
               sfx: _sfx,
               preferences: widget.preferences,
               botDelay: widget.botDelay,
@@ -131,12 +135,14 @@ class _AppState extends State<SweepApp> {
 }
 
 class SweepScreen extends StatefulWidget {
+  final GoogleSession? session;
   final SfxManager sfx;
   final SharedPreferences preferences;
   final Duration botDelay;
   final Duration openingDelay;
   const SweepScreen(
       {super.key,
+      this.session,
       required this.sfx,
       required this.preferences,
       required this.botDelay,
@@ -148,33 +154,49 @@ class SweepScreen extends StatefulWidget {
 class _SweepScreenState extends State<SweepScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   SweepGame? _game;
+  BotDifficulty _gameDifficulty = BotDifficulty.guest;
+  BotDifficulty get _newDifficulty =>
+      BotDifficulty.forAccount(_session.subject != null);
   SfxManager get _sfx => widget.sfx;
+  bool get _turnVibration =>
+      widget.preferences.getBool('seep.turnVibration') ?? true;
 
   Future<void> _soundDialog() => _overlay(() => showDialog<void>(
       context: context,
-      builder: (dialogContext) => ListenableBuilder(
-          listenable: _sfx,
-          builder: (context, child) => AlertDialog(
-                  title: Text(textFor('sound_effects')),
-                  content: Column(mainAxisSize: MainAxisSize.min, children: [
-                    SwitchListTile(
-                        key: const Key('sfx-enabled'),
-                        title: Text(textFor('sound_effects')),
-                        value: _sfx.enabled,
-                        onChanged: _sfx.setEnabled),
-                    Text(
-                        '${textFor('sfx_volume')} · ${(_sfx.volume * 100).round()}%'),
-                    Slider(
-                        key: const Key('sfx-volume'),
-                        value: _sfx.volume,
-                        label: '${(_sfx.volume * 100).round()}%',
-                        onChanged: _sfx.setVolume),
-                  ]),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: Text(textFor('close')))
-                  ]))));
+      builder: (dialogContext) => StatefulBuilder(
+          builder: (context, refresh) => ListenableBuilder(
+              listenable: _sfx,
+              builder: (context, child) => AlertDialog(
+                      title: Text(textFor('sound_effects')),
+                      content:
+                          Column(mainAxisSize: MainAxisSize.min, children: [
+                        SwitchListTile(
+                            key: const Key('turn-vibration'),
+                            title: Text(textFor('turn_vibration')),
+                            value: _turnVibration,
+                            onChanged: (value) async {
+                              await widget.preferences
+                                  .setBool('seep.turnVibration', value);
+                              if (context.mounted) refresh(() {});
+                            }),
+                        SwitchListTile(
+                            key: const Key('sfx-enabled'),
+                            title: Text(textFor('sound_effects')),
+                            value: _sfx.enabled,
+                            onChanged: _sfx.setEnabled),
+                        Text(
+                            '${textFor('sfx_volume')} · ${(_sfx.volume * 100).round()}%'),
+                        Slider(
+                            key: const Key('sfx-volume'),
+                            value: _sfx.volume,
+                            label: '${(_sfx.volume * 100).round()}%',
+                            onChanged: _sfx.setVolume),
+                      ]),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text(textFor('close')))
+                      ])))));
   String textFor(String key, [Map<String, Object?> args = const {}]) =>
       tr(context, key, args);
 
@@ -350,7 +372,8 @@ class _SweepScreenState extends State<SweepScreen>
     WidgetsBinding.instance.addObserver(this);
     _pace = widget.preferences.getDouble('sweep.pace') ?? 1;
     _motion = AnimationController(vsync: this)..addStatusListener(_finishMove);
-    _session = GoogleSession(widget.preferences)..addListener(_sessionChanged);
+    _session = widget.session ?? GoogleSession(widget.preferences);
+    _session.addListener(_sessionChanged);
     unawaited(_session.initialize());
     _reporting = AppReporting.open(_session);
     // Save operations surface initialization errors without an unhandled future.
@@ -360,6 +383,8 @@ class _SweepScreenState extends State<SweepScreen>
       try {
         final data = jsonDecode(saved) as Map<String, dynamic>;
         _game = SweepGame.fromJson(data);
+        _gameDifficulty = BotDifficulty.restore(data['botDifficulty'],
+            signedIn: _session.subject != null);
         _clientGameId = data['clientGameId'] as String? ?? const Uuid().v4();
         _completedReport =
             (data['completedReport'] as Map?)?.cast<String, dynamic>();
@@ -374,7 +399,7 @@ class _SweepScreenState extends State<SweepScreen>
   @override
   void dispose() {
     _session.removeListener(_sessionChanged);
-    _session.dispose();
+    if (widget.session == null) _session.dispose();
     unawaited(
         _reporting.then<void>((r) => r?.dispose(), onError: (Object _) {}));
     _botTimer?.cancel();
@@ -405,6 +430,7 @@ class _SweepScreenState extends State<SweepScreen>
   void _save() {
     if (_game == null) return;
     if (_completedReport == null &&
+        _gameDifficulty == BotDifficulty.low &&
         _game!.winner != null &&
         _game!.phase == Phase.results &&
         _session.subject != null) {
@@ -420,6 +446,7 @@ class _SweepScreenState extends State<SweepScreen>
     final encoded = jsonEncode({
       ..._game!.toJson(),
       'clientGameId': _clientGameId,
+      'botDifficulty': _gameDifficulty.name,
       if (report != null) 'completedReport': report
     });
     _saveQueue = _saveQueue.then((_) async {
@@ -480,7 +507,8 @@ class _SweepScreenState extends State<SweepScreen>
     final delay = g.phase == Phase.opening ? widget.openingDelay : _duration(1);
     _botTimer = Timer(delay, () {
       if (!mounted || _atHome || !_foreground) return;
-      final bot = SweepBot(g.seed + g.dealNumber * 53 + g.plays);
+      final bot =
+          GameBot(_gameDifficulty, g.seed + g.dealNumber * 53 + g.plays);
       if (g.phase == Phase.call) {
         _act(() {
           g.call(bot.chooseCall(g.position));
@@ -510,6 +538,9 @@ class _SweepScreenState extends State<SweepScreen>
           _game?.phase != Phase.results &&
           (oldTurn != 0 || oldDeal != _game?.dealNumber)) {
         unawaited(_sfx.play(Sfx.turn));
+        if (_turnVibration && _foreground && !_atHome) {
+          unawaited(HapticFeedback.lightImpact().catchError((Object _) {}));
+        }
       }
       _save();
       _scheduleBot();
@@ -543,7 +574,18 @@ class _SweepScreenState extends State<SweepScreen>
                   ]));
       if (replace != true || !mounted) return;
     }
+    _startFreshGame();
+  }
+
+  void _startFreshGame() {
+    _botTimer?.cancel();
+    _motion.stop();
+    _moving = null;
+    _movingAnalysis = null;
+    _leftoverCards = [];
+    _showingFinalMove = false;
     _act(() {
+      _gameDifficulty = _newDifficulty;
       _game = SweepGame.newGame();
       _clientGameId = const Uuid().v4();
       _completedReport = null;
@@ -749,12 +791,21 @@ class _SweepScreenState extends State<SweepScreen>
           ]))));
 
   void _sessionChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (_session.verified &&
+        _game != null &&
+        _game!.winner == null &&
+        _gameDifficulty == BotDifficulty.guest) {
+      _startFreshGame();
+    } else {
+      setState(() {});
+    }
   }
 
   Future<void> _signIn() async {
     await _session.signIn();
     if (!mounted) return;
+    if (_session.verified && _game == null) _startFreshGame();
     _save();
     try {
       await (await _reporting)?.retry(afterSignIn: true);
@@ -825,15 +876,29 @@ class _SweepScreenState extends State<SweepScreen>
                         Text(textFor(_session.errorKey!),
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.orangeAccent)),
-                      Text(
-                          textFor(_session.email == null
-                              ? 'login_guest'
-                              : 'login_uploads'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12)),
                       const SizedBox(height: 16),
                     ],
                     SizedBox(height: 16),
+                    Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          ChoiceChip(
+                              label: Text(textFor('difficulty_easy')),
+                              selected: true,
+                              showCheckmark: false,
+                              visualDensity: VisualDensity.compact,
+                              onSelected: (_) {}),
+                          for (final level in ['medium', 'hard'])
+                            ChoiceChip(
+                                label:
+                                    Text(textFor('difficulty_${level}_short')),
+                                visualDensity: VisualDensity.compact,
+                                selected: false,
+                                onSelected: null),
+                        ]),
+                    const SizedBox(height: 16),
                     Text(textFor('choose_a_card_light_up_the_table'),
                         textAlign: TextAlign.center,
                         style: TextStyle(

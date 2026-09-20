@@ -12,6 +12,15 @@ Google to upload completed games; guest play stays local. See
 
 ## Bot strategy (development)
 
+Guests use the strategy preserved from `v0.5.0`, with the current rules engine.
+Signed-in players use the current stronger bot (internally **Low**). The compact
+home-screen row labels the available level **Easy** for both account states.
+Medium and Hard are visible but disabled. All three bots use the game's saved
+difficulty. Successful login discards an unfinished guest game and starts a new
+Low game; failed login keeps it. Cached signed-in accounts retain Low offline.
+Signing out changes the next new game's level; an existing Low game retains its
+saved strategy. See `lib/game/difficulty.dart` and `test/difficulty_test.dart`.
+
 Seep supports English and Hindi. Use the globe button to change language without restarting the deal. See [Language support](LOCALIZATION.md) for terminology, offline resources and compatibility details.
 
 For a plain-language explanation with worked examples, review findings and limitations, read [How the Seep bots think](BOT_STRATEGY_GUIDE.md).

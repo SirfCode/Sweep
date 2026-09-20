@@ -1,10 +1,29 @@
 // Bundled English and Hindi messages. Placeholder names must match.
 const messageCatalog = {
+  "difficulty_easy": {"en": "Easy", "hi": "आसान"},
+  "difficulty_medium_short": {"en": "Medium", "hi": "मध्यम"},
+  "difficulty_hard_short": {"en": "Hard", "hi": "कठिन"},
+  "bot_difficulty": {"en": "Bot difficulty", "hi": "बॉट की कठिनाई"},
+  "difficulty_guest": {"en": "Easy · Guest", "hi": "आसान · अतिथि"},
+  "difficulty_low": {"en": "Low", "hi": "कम"},
+  "difficulty_medium": {
+    "en": "Medium · Coming soon",
+    "hi": "मध्यम · जल्द आएगा"
+  },
+  "difficulty_hard": {"en": "Hard · Coming soon", "hi": "कठिन · जल्द आएगा"},
+  "difficulty_note": {
+    "en":
+        "Sign in for Low difficulty. Signing in replaces an unfinished guest game with a fresh game.",
+    "hi":
+        "कम कठिनाई के लिए साइन इन करें। साइन इन करने पर अधूरा अतिथि खेल हटाकर नया खेल शुरू होगा।"
+  },
   "sound_effects": {"en": "Sound effects", "hi": "ध्वनि प्रभाव"},
   "sfx_volume": {"en": "Volume", "hi": "आवाज़"},
   "capture": {"en": "Capture", "hi": "उठाएँ"},
   "discard": {"en": "Throw", "hi": "फेंकें"},
-  "build": {"en": "Build {p0}", "hi": "{p0} का घर बनाएँ"},
+  "build": {"en": "House {p0}", "hi": "घर {p0}"},
+  "turn_vibration": {"en": "Vibrate on your turn", "hi": "आपकी बारी पर कंपन"},
+  "your_turn_badge": {"en": "Your turn", "hi": "आपकी बारी"},
   "raise_to": {"en": "Raise to {p0}", "hi": "घर {p0} तक बढ़ाएँ"},
   "scores_deal": {"en": "Scores · Deal {p0}", "hi": "अंक · बाज़ी {p0}"},
   "back_to_table": {"en": "Back to table", "hi": "मेज़ पर लौटें"},

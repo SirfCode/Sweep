@@ -310,22 +310,44 @@ extension _TableView on _SweepScreenState {
                                     child: Padding(
                                         padding: const EdgeInsets.symmetric(
                                             vertical: 6, horizontal: 4),
-                                        child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(textFor('you'),
-                                                  style: TextStyle(
-                                                      color: cream,
-                                                      fontSize: 11)),
-                                              Icon(Icons.style_outlined,
-                                                  color: cream, size: 12),
-                                              SizedBox(width: 3),
-                                              Text('${g.hands[0].length}',
-                                                  key: Key('cards-left-0'),
-                                                  style: TextStyle(
-                                                      color: cream,
-                                                      fontSize: 11)),
-                                            ]))))),
+                                        child: AnimatedContainer(
+                                            key: const Key(
+                                                'human-turn-indicator'),
+                                            duration: const Duration(
+                                                milliseconds: 180),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 3),
+                                            decoration: BoxDecoration(
+                                                color: human ? gold : ink,
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
+                                            child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                      textFor(human
+                                                          ? 'your_turn_badge'
+                                                          : 'you'),
+                                                      style: TextStyle(
+                                                          color: human
+                                                              ? ink
+                                                              : cream,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 13)),
+                                                  Icon(Icons.style_outlined,
+                                                      color:
+                                                          human ? ink : cream,
+                                                      size: 14),
+                                                  SizedBox(width: 3),
+                                                  Text('${g.hands[0].length}',
+                                                      key: Key('cards-left-0'),
+                                                      style: TextStyle(
+                                                          color: human
+                                                              ? ink
+                                                              : cream,
+                                                          fontSize: 11)),
+                                                ])))))),
                         Positioned(
                             top: top,
                             bottom: bottom,
@@ -364,12 +386,11 @@ extension _TableView on _SweepScreenState {
                                                 AnimatedOpacity(
                                                     duration: Duration(
                                                         milliseconds: 180),
-                                                    opacity:
-                                                        _selectedCard != null &&
-                                                                !available
-                                                                    .contains(c)
-                                                            ? .4
-                                                            : 1,
+                                                    opacity: _preview != null &&
+                                                            !selected
+                                                                .contains(c)
+                                                        ? .65
+                                                        : 1,
                                                     child: _gathered(
                                                         selected.contains(c),
                                                         TableCard(
@@ -401,28 +422,31 @@ extension _TableView on _SweepScreenState {
                                                     for (var i = 0;
                                                         i < g.houses.length;
                                                         i++)
-                                                      _gathered(
-                                                          selectedHouses
-                                                              .contains(i),
-                                                          HouseStack(
-                                                              key: Key(
-                                                                  'house-$i'),
-                                                              house:
-                                                                  g.houses[i],
-                                                              highlighted:
-                                                                  selectedHouses
+                                                      AnimatedOpacity(
+                                                          duration: const Duration(
+                                                              milliseconds:
+                                                                  180),
+                                                          opacity: _preview != null &&
+                                                                  !selectedHouses
                                                                       .contains(
-                                                                          i),
-                                                              onTap: human &&
-                                                                      availableHouses
-                                                                          .contains(
-                                                                              i)
-                                                                  ? () => _target((m) =>
-                                                                      m.houseIndexes.contains(i) ||
-                                                                      m.raisedIndex ==
                                                                           i)
-                                                                  : () =>
-                                                                      _inspectHouse(g.houses[i]))),
+                                                              ? .65
+                                                              : 1,
+                                                          child: _gathered(
+                                                              selectedHouses
+                                                                  .contains(i),
+                                                              HouseStack(
+                                                                  key: Key(
+                                                                      'house-$i'),
+                                                                  house: g.houses[
+                                                                      i],
+                                                                  highlighted:
+                                                                      selectedHouses.contains(
+                                                                          i),
+                                                                  onTap: human && availableHouses.contains(i)
+                                                                      ? () =>
+                                                                          _target((m) => m.houseIndexes.contains(i) || m.raisedIndex == i)
+                                                                      : () => _inspectHouse(g.houses[i])))),
                                                   ])),
                                       ],
                                     ]))),
@@ -448,15 +472,20 @@ extension _TableView on _SweepScreenState {
                                               child: Icon(Icons.pause,
                                                   color: gold, size: 32)))))),
                       ]))))),
-          SizedBox(
+          AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              decoration: BoxDecoration(
+                  color: human ? gold : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8)),
               height: compact ? 24 : 34,
               child: Center(
                   child: Text(status,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: _paused ? Colors.white60 : gold,
-                          fontSize: 12)))),
+                          color: human ? ink : cream,
+                          fontWeight: human ? FontWeight.w800 : FontWeight.w500,
+                          fontSize: human ? 15 : 13)))),
           if (g.phase == Phase.call && human)
             SizedBox(
                 height: 48,

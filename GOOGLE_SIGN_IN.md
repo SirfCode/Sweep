@@ -2,8 +2,11 @@
 
 Players can continue as guests or choose **Sign in with Google** on the home
 screen. Guest games stay on the device. Signed-in players upload one report after
-a full game finishes; gameplay remains offline. Stronger account-only bots are
-planned, not enabled by this login implementation.
+a full game finishes; gameplay remains offline. Guests use the v0.5.0 strategy;
+signed-in players use the current strategy (internally Low; displayed as Easy).
+Medium and Hard are
+disabled. Successful login replaces an unfinished guest game with a fresh Low
+game. Failed login preserves it. Offline cached accounts retain Low access.
 
 ## Google Cloud configuration
 

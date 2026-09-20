@@ -17,6 +17,30 @@ SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
     jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
+  testWidgets('turn vibration preference can be disabled and stays disabled',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(SweepApp(preferences: prefs));
+    await tester.tap(find.byTooltip('Game menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sound effects'));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<SwitchListTile>(find.byKey(const Key('turn-vibration')))
+            .value,
+        isTrue);
+    await tester.tap(find.byKey(const Key('turn-vibration')));
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('seep.turnVibration'), isFalse);
+    expect(
+        tester
+            .widget<SwitchListTile>(find.byKey(const Key('turn-vibration')))
+            .value,
+        isFalse);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('leftovers visibly reach the last capturer before scores',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -284,7 +308,7 @@ void main() {
     expect(saved(prefs).plays, 0);
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('loose ten offers Capture and Build 10 and creates a pakka house',
+  testWidgets('loose ten offers Capture and House 10 and creates a pakka house',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -298,7 +322,8 @@ void main() {
     await tester.tap(find.byKey(const Key('hand-48')));
     await tester.pumpAndSettle();
     expect(find.text('Capture'), findsWidgets);
-    expect(find.text('Build 10'), findsOneWidget);
+    expect(find.text('House 10'), findsOneWidget);
+    expect(find.text('Your turn'), findsOneWidget);
     final options =
         game.position.legalMoves().where((m) => m.card == 48).toList();
     final index = options.indexWhere((m) => m.kind == MoveKind.build);
@@ -371,7 +396,11 @@ void main() {
     await tester.runAsync(() async {
       final image = await boundary.toImage(pixelRatio: 1.5);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      await File('artifacts/$name.png')
+      final outputName = name.replaceFirst(
+          'v0.2-',
+          const String.fromEnvironment('SCREENSHOT_PREFIX',
+              defaultValue: 'v0.2-'));
+      await File('artifacts/$outputName.png')
           .writeAsBytes(bytes!.buffer.asUint8List());
       image.dispose();
     });
