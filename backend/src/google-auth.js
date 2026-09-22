@@ -20,7 +20,7 @@ export async function googleUser(client, identity) {
   const existing = await client.query('SELECT id FROM seep_users WHERE google_sub=$1 FOR UPDATE', [identity.sub]);
   if (existing.rowCount) {
     const result = await client.query(`UPDATE seep_users SET email=$2, display_name=$3
-      WHERE id=$1 RETURNING id, email, display_name AS "displayName", google_sub AS "googleSubject"`,
+      WHERE id=$1 RETURNING id, email, display_name AS "displayName", google_sub AS "googleSubject", analysis_enabled AS "analysisEnabled"`,
     [existing.rows[0].id, identity.email, identity.name]);
     return result.rows[0];
   }
@@ -28,7 +28,7 @@ export async function googleUser(client, identity) {
     VALUES ($1,$2,$3) ON CONFLICT(email) DO UPDATE
     SET google_sub=EXCLUDED.google_sub, display_name=EXCLUDED.display_name
     WHERE seep_users.google_sub IS NULL OR seep_users.google_sub=EXCLUDED.google_sub
-    RETURNING id, email, display_name AS "displayName", google_sub AS "googleSubject"`,
+    RETURNING id, email, display_name AS "displayName", google_sub AS "googleSubject", analysis_enabled AS "analysisEnabled"`,
   [identity.email, identity.name, identity.sub]);
   if (!result.rowCount) {
     const error = new Error('Account conflict'); error.statusCode = 409; throw error;

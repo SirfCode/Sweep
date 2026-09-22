@@ -1,5 +1,17 @@
 // Bundled English and Hindi messages. Placeholder names must match.
 const messageCatalog = {
+  "save_analysis": {
+    "en": "Save deal for analysis",
+    "hi": "विश्लेषण के लिए बाज़ी सहेजें"
+  },
+  "analysis_queued": {
+    "en": "Snapshot saved on this device and queued for upload.",
+    "hi": "स्नैपशॉट इस डिवाइस पर सहेजा गया है और अपलोड के लिए कतार में है।"
+  },
+  "analysis_failed": {
+    "en": "Could not save the snapshot. Please try again.",
+    "hi": "स्नैपशॉट सहेजा नहीं जा सका। फिर से कोशिश करें।"
+  },
   "difficulty_easy": {"en": "Easy", "hi": "आसान"},
   "difficulty_medium_short": {"en": "Medium", "hi": "मध्यम"},
   "difficulty_hard_short": {"en": "Hard", "hi": "कठिन"},
@@ -32,8 +44,8 @@ const messageCatalog = {
         "Keep this card for your house, or choose a card that follows the opening call.",
     "hi": "यह पत्ता अपने घर के लिए रखें, या शुरुआती बोली के अनुसार पत्ता चुनें।"
   },
-  "you_ari": {"en": "You & Shak", "hi": "आप और Shak"},
-  "mira_dev": {"en": "Nishu & JLo", "hi": "Nishu और JLo"},
+  "you_ari": {"en": "You & Homer", "hi": "आप और Homer"},
+  "mira_dev": {"en": "Plato & Thales", "hi": "Plato और Thales"},
   "game": {"en": "Game {p0}", "hi": "कुल {p0}"},
   "this_deal": {"en": "THIS DEAL", "hi": "इस बाज़ी में"},
   "card_pts": {"en": "{p0} card pts", "hi": "पत्तों के {p0} अंक"},
@@ -96,7 +108,7 @@ const messageCatalog = {
     "en": "Leftover cards → {p0}\n{p1} points · No seep",
     "hi": "बचे पत्ते → {p0}\n{p1} अंक · कोई सीप नहीं"
   },
-  "seep": {"en": "SEEP", "hi": "सीप"},
+  "seep": {"en": "Seep", "hi": "सीप"},
   "scores_in_a_moment": {"en": "Scores in a moment…", "hi": "अंक अभी दिखेंगे…"},
   "waiting_for_the_deal": {
     "en": "Waiting for the deal",
@@ -228,8 +240,8 @@ const messageCatalog = {
     "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.10"
   },
   "deal_complete_2": {"en": "Deal complete", "hi": "बाज़ी पूरी"},
-  "you_and_ari_win": {"en": "You and Shak win!", "hi": "आप और Shak जीत गए!"},
-  "mira_and_dev_win": {"en": "Nishu and JLo win", "hi": "Nishu और JLo जीत गए"},
+  "you_and_ari_win": {"en": "You and Homer win!", "hi": "आप और Homer जीत गए!"},
+  "mira_and_dev_win": {"en": "Plato and Thales win", "hi": "Plato और Thales जीत गए"},
   "a_lead_of_after_a_completed_deal": {
     "en": "A lead of 104 after a completed deal wins the game.",
     "hi": "पूरी बाज़ी के बाद 104 अंकों की बढ़त से खेल जीता जाता है।"
@@ -238,8 +250,8 @@ const messageCatalog = {
     "en": "Final lead: {p0} points.",
     "hi": "अंतिम बढ़त: {p0} अंक।"
   },
-  "you_ari_2": {"en": "You + Shak", "hi": "आप + Shak"},
-  "mira_dev_2": {"en": "Nishu + JLo", "hi": "Nishu + JLo"},
+  "you_ari_2": {"en": "You + Homer", "hi": "आप + Homer"},
+  "mira_dev_2": {"en": "Plato + Thales", "hi": "Plato + Thales"},
   "captured_card_points": {
     "en": "Captured card points",
     "hi": "उठाए पत्तों के अंक"

@@ -1,7 +1,7 @@
 import 'package:sweep/game/engine.dart';
 
 /// Human holds A clubs, 10 diamonds and 10 spades; the table has a loose
-/// 10 clubs, 5 diamonds, and Nishu's unrelated pakka house of 13.
+/// 10 clubs, 5 diamonds, and Plato's unrelated pakka house of 13.
 SweepGame twoTensGame() {
   final game = SweepGame.newGame(seed: 42, dealer: 3);
   game.phase = Phase.playing;

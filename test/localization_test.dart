@@ -45,7 +45,7 @@ void main() {
           {saveKey: jsonEncode(game.toJson())});
       final prefs = await SharedPreferences.getInstance();
       await tester.pumpWidget(SweepApp(preferences: prefs));
-      expect(find.text('SEEP'), findsOneWidget);
+      expect(find.text('Seep'), findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key('resume')));
       await tester.tap(find.byKey(const Key('resume')));
       await tester.pumpAndSettle();
@@ -79,7 +79,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('language-en')));
       await tester.pumpAndSettle();
-      expect(find.text('SEEP'), findsOneWidget);
+      expect(find.text('Seep'), findsOneWidget);
       expect(prefs.getString(saveKey), saved);
       await tester.pumpWidget(const SizedBox());
     });
@@ -99,8 +99,8 @@ void main() {
     tester.binding.platformDispatcher.localesTestValue = const [Locale('ar')];
     await tester.pumpWidget(SweepApp(preferences: prefs));
     await tester.pumpAndSettle();
-    expect(find.text('SEEP'), findsOneWidget);
-    expect(Directionality.of(tester.element(find.text('SEEP'))),
+    expect(find.text('Seep'), findsOneWidget);
+    expect(Directionality.of(tester.element(find.text('Seep'))),
         TextDirection.ltr);
   });
 

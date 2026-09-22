@@ -16,6 +16,7 @@ import 'package:uuid/uuid.dart';
 import 'reporting/app_reporting.dart';
 import 'reporting/completed_report.dart';
 import 'reporting/game_log.dart';
+import 'reporting/device_platform.dart';
 import 'auth/google_session.dart';
 export 'table_art.dart' show CardFace, CardBack;
 part 'table_view.dart';
@@ -231,6 +232,7 @@ class _SweepScreenState extends State<SweepScreen>
   late final GoogleSession _session;
   Map<String, dynamic>? _completedReport;
   GameLog? _gameLog;
+  late final Future<String> _reportPlatform = reportPlatform();
   String _clientGameId = const Uuid().v4();
   late final AnimationController _motion;
   Move? _moving;
@@ -282,6 +284,7 @@ class _SweepScreenState extends State<SweepScreen>
 
   void _play(Move move, {Map<String, dynamic>? analysis}) {
     if (_paused || _moving != null) return;
+    _dismissCardHint();
     unawaited(_sfx.play(Sfx.play));
     _botTimer?.cancel();
     _openingCountdown?.cancel();
@@ -367,6 +370,52 @@ class _SweepScreenState extends State<SweepScreen>
   void _openMenu() {
     _menuWasPaused = _paused;
     if (!_paused) _togglePause();
+  }
+
+  Future<void> _saveAnalysisSnapshot() async {
+    final game = _game;
+    if (game == null ||
+        _gameLog == null ||
+        _session.subject == null ||
+        _session.user?['analysisEnabled'] != true) {
+      return;
+    }
+    // Copy before any await: animations or bot turns must not alter this point.
+    final log = _gameLog!.toJson();
+    final payload = jsonDecode(jsonEncode({
+      'user': {'email': _session.email, 'googleSubject': _session.subject},
+      'clientGameId': _clientGameId,
+      'clientSnapshotId': const Uuid().v4(),
+      'dealNumber': game.dealNumber,
+      'moveNumber': game.plays,
+      'dealStatus': game.phase == Phase.results ? 'completed' : 'in_progress',
+      'savedAt': DateTime.now().toUtc().toIso8601String(),
+      'appVersion': AppReporting.version,
+      'botStrategy':
+          _gameDifficulty == BotDifficulty.guest ? 'v0.5.0' : 'current',
+      'snapshot': {
+        'complete': log['complete'],
+        'deal': (log['deals'] as List).last,
+        'state': game.toJson()..remove('decisions'),
+        'decisions':
+            game.decisions.where((d) => d['deal'] == game.dealNumber).toList(),
+      },
+    })) as Map<String, dynamic>;
+    try {
+      final reporting = await _reporting;
+      if (reporting == null) throw StateError('Reporting unavailable');
+      await reporting.snapshots.enqueue(payload);
+      unawaited(reporting.retry());
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(textFor('analysis_queued'))));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(textFor('analysis_failed'))));
+      }
+    }
   }
 
   void _closeMenu() {
@@ -466,7 +515,14 @@ class _SweepScreenState extends State<SweepScreen>
     });
     _saveQueue = _saveQueue.then((_) async {
       try {
-        if (!await widget.preferences.setString(saveKey, encoded)) {
+        var savedJson = encoded;
+        if (report != null) {
+          report['platform'] = await _reportPlatform;
+          final envelope = jsonDecode(encoded) as Map<String, dynamic>;
+          envelope['completedReport'] = report;
+          savedJson = jsonEncode(envelope);
+        }
+        if (!await widget.preferences.setString(saveKey, savedJson)) {
           throw StateError('Save failed');
         }
         if (report != null) await (await _reporting)?.enqueue(report);
@@ -763,7 +819,9 @@ class _SweepScreenState extends State<SweepScreen>
                     icon: Icon(Icons.more_horiz),
                     onSelected: (value) {
                       _closeMenu();
-                      if (value == 'rules') {
+                      if (value == 'analysis') {
+                        _saveAnalysisSnapshot();
+                      } else if (value == 'rules') {
                         _rules();
                       } else if (value == 'history') {
                         _history();
@@ -798,6 +856,13 @@ class _SweepScreenState extends State<SweepScreen>
                                     }[entry.key],
                                 child: Text(entry.value)),
                           PopupMenuDivider(),
+                          if (!_atHome &&
+                              _game != null &&
+                              _session.subject != null &&
+                              _session.user?['analysisEnabled'] == true)
+                            PopupMenuItem(
+                                value: 'analysis',
+                                child: Text(textFor('save_analysis'))),
                           if (!_atHome)
                             PopupMenuItem(
                                 value: 'history',

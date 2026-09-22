@@ -41,6 +41,46 @@ http.Response ack(int status) => http.Response(
     jsonEncode({'reportId': 'report-id', 'userId': 'user-id'}), status);
 
 void main() {
+  test(
+      'analysis snapshots queue independently by snapshot ID and survive offline retry',
+      () async {
+    final store = MemoryReportStore();
+    var online = false;
+    final received = <Map<String, dynamic>>[];
+    final q = CompletedReportQueue(
+        store: store,
+        analysisSnapshots: true,
+        endpoint:
+            Uri.parse('https://seep.example.com/api/seep/analysis-snapshots'),
+        uploadKey: 'test',
+        client: MockClient((request) async {
+          if (!online) throw const SocketException('offline');
+          received.add(jsonDecode(request.body));
+          return ack(201);
+        }));
+    final data = <String, dynamic>{
+      'user': {'email': 'p@example.com'},
+      'clientGameId': 'one-game',
+      'clientSnapshotId': 'point-one',
+      'snapshot': {
+        'state': {'plays': 3}
+      }
+    };
+    await q.enqueue(data);
+    data['snapshot']['state']['plays'] = 4;
+    await q.enqueue(data);
+    await q.enqueue({...data, 'clientSnapshotId': 'point-two'});
+    await q.flush();
+    expect(store.entries.length, 2);
+    expect(store.entries.first['report']['snapshot']['state']['plays'], 3);
+    online = true;
+    for (final entry in store.entries) {
+      entry['nextAttemptAt'] = DateTime.utc(2020).toIso8601String();
+    }
+    expect((await q.flush()).sent, 2);
+    expect(
+        received.map((e) => e['clientSnapshotId']), ['point-one', 'point-two']);
+  });
   late MemoryReportStore store;
   var time = DateTime.utc(2026, 9, 19);
   CompletedReportQueue queue(

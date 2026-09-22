@@ -1,4 +1,20 @@
 const team = { type: 'integer', enum: [0, 1] };
+export const snapshotBody = {
+ type: 'object', additionalProperties: false,
+ required: ['user','clientGameId','clientSnapshotId','dealNumber','moveNumber','dealStatus','savedAt','appVersion','botStrategy','snapshot'],
+ properties: {
+  user: {type:'object', additionalProperties:false, required:['email','googleSubject'], properties:{email:{type:'string',maxLength:254},googleSubject:{type:'string',maxLength:255}}},
+  clientGameId:{type:'string',minLength:1,maxLength:128},
+  clientSnapshotId:{type:'string',format:'uuid'},
+  dealNumber:{type:'integer',minimum:1,maximum:100000},
+  moveNumber:{type:'integer',minimum:0,maximum:48},
+  dealStatus:{type:'string',enum:['in_progress','completed']},
+  savedAt:{type:'string',format:'date-time'},
+  appVersion:{type:'string',minLength:1,maxLength:64},
+  botStrategy:{type:'string',minLength:1,maxLength:64},
+  snapshot:{type:'object',required:['deal','state','decisions'],properties:{deal:{type:'object'},state:{type:'object'},decisions:{type:'array'}},additionalProperties:true}
+ }
+};
 const total = { type: 'integer', minimum: 0, maximum: 2147483647 };
 export const reportBody = {
   type: 'object', additionalProperties: false,

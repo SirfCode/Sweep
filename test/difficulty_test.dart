@@ -29,6 +29,31 @@ class TestSession extends GoogleSession {
 }
 
 void main() {
+  testWidgets('analysis menu is visible only for an enabled signed-in account',
+      (tester) async {
+    for (final enabled in [false, true]) {
+      final game = SweepGame.newGame(seed: 42, dealer: 3);
+      SharedPreferences.setMockInitialValues({
+        saveKey: jsonEncode({...game.toJson(), 'botDifficulty': 'low'})
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final session = TestSession(prefs)
+        ..user = {
+          'email': 'test@example.com',
+          'googleSubject': 'test-sub',
+          'analysisEnabled': enabled
+        };
+      await tester.pumpWidget(SweepApp(preferences: prefs, session: session));
+      await tester.tap(find.byKey(const Key('resume')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Game menu'));
+      await tester.pumpAndSettle();
+      expect(find.text('Save deal for analysis'),
+          enabled ? findsOneWidget : findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+    }
+  });
   test(
       'guest policy matches v0.5 decisions throughout a legal current-engine deal',
       () {

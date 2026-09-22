@@ -1,7 +1,7 @@
 import Fastify, { LogController } from 'fastify';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { transaction } from './database.js';
-import { reportBody, reportsQuery, statsQuery, userParams } from './schema.js';
+import { reportBody, reportsQuery, statsQuery, userParams, snapshotBody } from './schema.js';
 import { googleVerifier, googleUser } from './google-auth.js';
 
 const digest = value => createHash('sha256').update(value).digest();
@@ -86,6 +86,29 @@ export function buildApp({ pool, adminKey, uploadKey, logger = false,
     return { user };
   });
 
+  app.post('/api/seep/analysis-snapshots', {onRequest: googleAuth, schema:{body:snapshotBody}}, async (request, reply) => {
+    const b=request.body, identity=request.googleIdentity;
+    if(b.user.googleSubject!==identity.sub || b.user.email.trim().toLowerCase()!==identity.email) return reply.code(403).send({error:'Account mismatch'});
+    const result=await transaction(pool, async client => {
+      const u=await client.query('SELECT id, analysis_enabled FROM seep_users WHERE google_sub=$1 FOR SHARE',[identity.sub]);
+      if(!u.rows[0]?.analysis_enabled) return null;
+      const userId=u.rows[0].id;
+      const inserted=await client.query(`INSERT INTO seep_analysis_snapshots(user_id,client_game_id,client_snapshot_id,deal_number,move_number,deal_status,saved_at,app_version,bot_strategy,snapshot_json)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(user_id,client_snapshot_id) DO NOTHING RETURNING id`,
+        [userId,b.clientGameId,b.clientSnapshotId,b.dealNumber,b.moveNumber,b.dealStatus,b.savedAt,b.appVersion,b.botStrategy,JSON.stringify(b.snapshot)]);
+      const id=inserted.rows[0]?.id ?? (await client.query('SELECT id FROM seep_analysis_snapshots WHERE user_id=$1 AND client_snapshot_id=$2',[userId,b.clientSnapshotId])).rows[0].id;
+      return {reportId:id,snapshotId:id,userId,duplicate:!inserted.rowCount};
+    });
+    if(!result) return reply.code(403).send({error:'Analysis is disabled for this account'});
+    return reply.code(result.duplicate?200:201).send(result);
+  });
+  app.get('/api/seep/admin/users/:id/analysis-snapshots', {onRequest:auth(adminKey),schema:{params:userParams,querystring:reportsQuery}}, async (request,reply) => {
+    const user=await pool.query('SELECT analysis_enabled FROM seep_users WHERE id=$1',[request.params.id]);
+    if(!user.rowCount) return reply.code(404).send({error:'Unknown user'});
+    if(!user.rows[0].analysis_enabled) return reply.code(403).send({error:'Analysis disabled'});
+    const rows=await pool.query('SELECT * FROM seep_analysis_snapshots WHERE user_id=$1 ORDER BY uploaded_at DESC LIMIT $2 OFFSET $3',[request.params.id,Math.min(Number(request.query.limit ?? 10),10),Number(request.query.offset ?? 0)]);
+    return {snapshots:rows.rows};
+  });
   app.post('/api/seep/reports', { onRequest: reportAuth, schema: { body: reportBody } }, async (request, reply) => {
     const b = request.body;
     const identity = request.googleIdentity;

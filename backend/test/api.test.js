@@ -35,7 +35,7 @@ after(async () => { await app.close(); await pool.end(); });
 
 test('schema uses only seep_ tables and has the required indexes', async () => {
   const tables = await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public'");
-  assert.deepEqual(tables.rows.map(r => r.tablename).sort(), ['seep_game_reports', 'seep_schema_migrations', 'seep_users']);
+  assert.deepEqual(tables.rows.map(r => r.tablename).sort(), ['seep_analysis_snapshots', 'seep_game_reports', 'seep_schema_migrations', 'seep_users']);
   const indexes = await pool.query("SELECT indexdef FROM pg_indexes WHERE tablename IN ('seep_users','seep_game_reports')");
   assert(indexes.rows.some(r => r.indexdef.includes('(user_id, uploaded_at DESC)')));
   assert(indexes.rows.some(r => r.indexdef.includes('(user_id, user_won)')));
@@ -190,4 +190,28 @@ test('legacy access is restricted to dummy account and disabled by default', asy
   try {
     assert.equal((await secure.inject({method:'POST',url:'/api/seep/reports',headers:{'x-api-key':uploadKey},payload:report()})).statusCode,401);
   } finally {await secure.close();}
+});
+
+test('analysis snapshots enforce eligibility, remain immutable and never count as games', async () => {
+  const token=tokenFor('analyst@example.com');
+  const headers={authorization:`Bearer ${token}`};
+  const login=await app.inject({method:'POST',url:'/api/seep/auth/google',headers});
+  const user=login.json().user;
+  assert.equal(user.analysisEnabled,false);
+  const payload={user:{email:user.email,googleSubject:user.googleSubject},clientGameId:'same-game',clientSnapshotId:randomUUID(),dealNumber:1,moveNumber:3,dealStatus:'in_progress',savedAt:new Date().toISOString(),appVersion:'test',botStrategy:'current',snapshot:{deal:{events:[]},state:{},decisions:[]}};
+  const save=body=>app.inject({method:'POST',url:'/api/seep/analysis-snapshots',headers,payload:body});
+  assert.equal((await save(payload)).statusCode,403);
+  await admin(`/api/seep/admin/users/${user.id}/analysis`,'PATCH',{analysisEnabled:true});
+  assert.equal((await app.inject({method:'POST',url:'/api/seep/auth/google',headers})).json().user.analysisEnabled,true);
+  assert.equal((await save({...payload,user:{...payload.user,googleSubject:'other'}})).statusCode,403);
+  assert.equal((await save({...payload,moveNumber:49})).statusCode,400);
+  assert.equal((await save(payload)).statusCode,201);
+  assert.equal((await save({...payload,moveNumber:4})).statusCode,200);
+  assert.equal((await save({...payload,clientSnapshotId:randomUUID(),moveNumber:4})).statusCode,201);
+  const snapshots=(await admin(`/api/seep/admin/users/${user.id}/analysis-snapshots`)).json().snapshots;
+  assert.equal(snapshots.length,2);
+  assert.equal(snapshots[1].move_number,3);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM seep_game_reports')).rows[0].n,0);
+  await admin(`/api/seep/admin/users/${user.id}/analysis`,'PATCH',{analysisEnabled:false});
+  assert.equal((await save({...payload,clientSnapshotId:randomUUID()})).statusCode,403);
 });

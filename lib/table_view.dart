@@ -29,16 +29,25 @@ extension _TableView on _SweepScreenState {
               .animate(_motion),
           child: child);
   void _chooseCard(int card, List<Move> moves) {
+    _dismissCardHint();
     if (moves.isEmpty) {
       unawaited(_sfx.play(Sfx.invalid));
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(textFor('keep_this_card_for_your_house_or'))));
+          SnackBar(
+              duration: const Duration(seconds: 2),
+              content: Text(textFor('keep_this_card_for_your_house_or'))));
       return;
     }
     _update(() {
       _selectedCard = _selectedCard == card ? null : card;
       _preview = _selectedCard == null ? null : moves.first;
     });
+  }
+
+  void _dismissCardHint() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
   }
 
   void _target(bool Function(Move) matches) {

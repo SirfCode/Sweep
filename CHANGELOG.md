@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0
+
+- Rename Shak to Homer, Nishu to Plato, and JLo to Thales, including saved-history display and translations.
+- Add permission-gated deal analysis snapshots, a separate offline upload queue, API endpoints and SQL migration. Shared-backend deployment is required to enable this feature.
+- Use the new Seep launcher artwork and include Android release/API version in completed-game reports.
+- Display Seep in title case and dismiss card hints promptly when selecting or playing a card.
+
 ## 0.13.0
 
 - Record a persistent full-game journal and include it in signed-in human-team winning reports, regardless of the user's analysis flag. Preserve logs through offline retries and mark older saves with incomplete history.

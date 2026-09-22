@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
@@ -8,12 +9,13 @@ import '../auth/google_session.dart';
 /// Native Google-authenticated completed-game uploads. Guest play stays local.
 class AppReporting with WidgetsBindingObserver {
   static const version =
-      String.fromEnvironment('SEEP_APP_VERSION', defaultValue: '0.13.0+13');
+      String.fromEnvironment('SEEP_APP_VERSION', defaultValue: '0.14.0+14');
   final CompletedReportQueue queue;
+  final CompletedReportQueue snapshots;
   final http.Client client;
   Timer? _timer;
   Object? lastError;
-  AppReporting._(this.queue, this.client);
+  AppReporting._(this.queue, this.client, this.snapshots);
 
   static Future<AppReporting?> open(GoogleSession session) async {
     const base = GoogleSession.apiBase;
@@ -27,7 +29,15 @@ class AppReporting with WidgetsBindingObserver {
             endpoint: Uri.parse(base).resolve('/api/seep/reports'),
             authorization: session.headersFor,
             onUnauthorized: session.sessionRejected),
-        client);
+        client,
+        CompletedReportQueue(
+            store: FileReportStore(
+                File('${store.file.parent.path}/seep_analysis_snapshots.json')),
+            client: client,
+            endpoint: Uri.parse(base).resolve('/api/seep/analysis-snapshots'),
+            analysisSnapshots: true,
+            authorization: session.headersFor,
+            onUnauthorized: session.sessionRejected));
     WidgetsBinding.instance.addObserver(reporting);
     reporting._resume();
     return reporting;
@@ -42,6 +52,8 @@ class AppReporting with WidgetsBindingObserver {
     try {
       if (afterSignIn) await queue.retryAfterSignIn();
       await queue.flush();
+      if (afterSignIn) await snapshots.retryAfterSignIn();
+      await snapshots.flush();
       lastError = null;
     } catch (error) {
       lastError = error;

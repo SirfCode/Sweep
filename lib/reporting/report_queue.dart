@@ -57,6 +57,7 @@ class CompletedReportQueue {
   final DateTime Function() now;
   final Random random;
   final Duration timeout;
+  final bool analysisSnapshots;
   Future<void>? _storageTail;
   Future<ReportFlushResult>? _inFlight;
 
@@ -65,6 +66,7 @@ class CompletedReportQueue {
       required this.client,
       required this.endpoint,
       this.uploadKey = '',
+      this.analysisSnapshots = false,
       this.onUnauthorized,
       this.authorization,
       DateTime Function()? now,
@@ -100,9 +102,12 @@ class CompletedReportQueue {
             !RegExp(r'^\S+@\S+\.\S+$').hasMatch(email.trim()) ||
             report['clientGameId'] is! String ||
             (report['clientGameId'] as String).trim().isEmpty ||
-            ![0, 1].contains(report['winnerTeam']) ||
-            report['dealCount'] is! int ||
-            (report['dealCount'] as int) < 1) {
+            (analysisSnapshots
+                ? report['clientSnapshotId'] is! String ||
+                    report['snapshot'] is! Map
+                : ![0, 1].contains(report['winnerTeam']) ||
+                    report['dealCount'] is! int ||
+                    (report['dealCount'] as int) < 1)) {
           throw ArgumentError(
               'A completed-game report, stable game ID and email are required');
         }
@@ -113,7 +118,8 @@ class CompletedReportQueue {
         }
         final snapshot = jsonDecode(encoded) as Map<String, dynamic>;
         (snapshot['user'] as Map)['email'] = email.trim().toLowerCase();
-        final key = '${email.trim().toLowerCase()}\n${report['clientGameId']}';
+        final key =
+            '${email.trim().toLowerCase()}\n${analysisSnapshots ? report['clientSnapshotId'] : report['clientGameId']}';
         final entries = await store.read();
         if (entries.any((e) => e['key'] == key)) return;
         // Bounded storage without silently deleting old unsent reports.
