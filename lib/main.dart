@@ -1000,7 +1000,9 @@ class _SweepScreenState extends State<SweepScreen>
                                 onSelected: null),
                         ]),
                     const SizedBox(height: 16),
-                    Text(textFor('choose_a_card_light_up_the_table'),
+                    Text(
+                        textFor('choose_a_card_light_up_the_table',
+                            {'version': AppReporting.version.split('+').first}),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13, height: 1.5, color: Colors.white60))

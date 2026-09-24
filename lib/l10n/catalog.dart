@@ -236,12 +236,16 @@ const messageCatalog = {
   "view_game_result": {"en": "View game result", "hi": "खेल का परिणाम देखें"},
   "resume_deal": {"en": "Resume • Deal {p0}", "hi": "जारी रखें • बाज़ी {p0}"},
   "choose_a_card_light_up_the_table": {
-    "en": "Choose a card. Light up the table.\nYour seat is waiting. • v0.10",
-    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v0.10"
+    "en":
+        "Choose a card. Light up the table.\nYour seat is waiting. • v{version}",
+    "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v{version}"
   },
   "deal_complete_2": {"en": "Deal complete", "hi": "बाज़ी पूरी"},
   "you_and_ari_win": {"en": "You and Homer win!", "hi": "आप और Homer जीत गए!"},
-  "mira_and_dev_win": {"en": "Plato and Thales win", "hi": "Plato और Thales जीत गए"},
+  "mira_and_dev_win": {
+    "en": "Plato and Thales win",
+    "hi": "Plato और Thales जीत गए"
+  },
   "a_lead_of_after_a_completed_deal": {
     "en": "A lead of 104 after a completed deal wins the game.",
     "hi": "पूरी बाज़ी के बाद 104 अंकों की बढ़त से खेल जीता जाता है।"

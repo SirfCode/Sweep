@@ -32,10 +32,9 @@ extension _TableView on _SweepScreenState {
     _dismissCardHint();
     if (moves.isEmpty) {
       unawaited(_sfx.play(Sfx.invalid));
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              duration: const Duration(seconds: 2),
-              content: Text(textFor('keep_this_card_for_your_house_or'))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(textFor('keep_this_card_for_your_house_or'))));
       return;
     }
     _update(() {
@@ -251,14 +250,18 @@ extension _TableView on _SweepScreenState {
                             left: 0,
                             top: 0,
                             bottom: 0,
-                            width: 44,
-                            child: Center(child: seat(3))),
+                            width: 32,
+                            child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: seat(3))),
                         Positioned(
                             right: 0,
                             top: 0,
                             bottom: 0,
-                            width: 44,
-                            child: Center(child: seat(1))),
+                            width: 32,
+                            child: Align(
+                                alignment: Alignment.centerRight,
+                                child: seat(1))),
                         if (g.calledValue != null)
                           Positioned(
                             top: 6,

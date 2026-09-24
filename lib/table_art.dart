@@ -453,8 +453,8 @@ class PlayerSeat extends StatelessWidget {
             message: description,
             child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                width: seat == 2 ? 88 : 44,
-                height: seat == 2 ? 42 : 64,
+                width: seat == 2 ? 88 : 32,
+                height: seat == 2 ? 42 : 80,
                 decoration: BoxDecoration(
                     color: active ? gold : ink,
                     border: Border.all(
@@ -477,24 +477,35 @@ class PlayerSeat extends StatelessWidget {
                           ]
                         : []),
                 alignment: Alignment.center,
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(playerName(context, seat),
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: active ? ink : cream,
-                          fontWeight: FontWeight.w600)),
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.style_outlined,
-                        size: 10, color: active ? ink : cream),
-                    const SizedBox(width: 2),
-                    Text('$count',
-                        key: Key('cards-left-$seat'),
-                        style: TextStyle(
-                            fontSize: 10,
-                            height: 1,
-                            color: active ? ink : cream)),
-                  ]),
-                ]))));
+                child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: RotatedBox(
+                        quarterTurns: seat == 2
+                            ? 0
+                            : seat == 3
+                                ? 1
+                                : 3,
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          Text(playerName(context, seat),
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: active ? ink : cream,
+                                  fontWeight: FontWeight.w600)),
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.style_outlined,
+                                size: 10, color: active ? ink : cream),
+                            const SizedBox(width: 2),
+                            Text('$count',
+                                key: Key('cards-left-$seat'),
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    height: 1,
+                                    color: active ? ink : cream)),
+                          ]),
+                        ]))))));
   }
 }
 
