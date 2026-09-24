@@ -378,6 +378,27 @@ void main() {
     expect(p.resultingOwners(move), {2});
     expect(move.houseIndexes, [1]);
   });
+  test('owner can raise their own kaccha house to a higher rank', () {
+    final p = position([
+      c(1),
+      c(12),
+      c(2),
+      c(13)
+    ], [], houses: [
+      House(11, [
+        [c(6), c(5)]
+      ], [
+        0
+      ])
+    ]);
+    final moves = p.legalMoves().where((m) => m.kind == MoveKind.raise);
+    expect(
+        moves.any((m) => m.card == c(1) && m.value == 12 && m.raisedIndex == 0),
+        isTrue);
+    expect(
+        moves.any((m) => m.card == c(2) && m.value == 13 && m.raisedIndex == 0),
+        isTrue);
+  });
   test('pakka cannot be raised and multiple commitments remain protected', () {
     final p = position([
       c(1),

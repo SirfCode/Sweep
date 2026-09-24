@@ -17,30 +17,6 @@ SweepGame saved(SharedPreferences prefs) => SweepGame.fromJson(
     jsonDecode(prefs.getString(saveKey)!) as Map<String, dynamic>);
 
 void main() {
-  testWidgets('turn vibration preference can be disabled and stays disabled',
-      (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(SweepApp(preferences: prefs));
-    await tester.tap(find.byTooltip('Game menu'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sound effects'));
-    await tester.pumpAndSettle();
-    expect(
-        tester
-            .widget<SwitchListTile>(find.byKey(const Key('turn-vibration')))
-            .value,
-        isTrue);
-    await tester.tap(find.byKey(const Key('turn-vibration')));
-    await tester.pumpAndSettle();
-    expect(prefs.getBool('seep.turnVibration'), isFalse);
-    expect(
-        tester
-            .widget<SwitchListTile>(find.byKey(const Key('turn-vibration')))
-            .value,
-        isFalse);
-    await tester.pumpWidget(const SizedBox());
-  });
   testWidgets('leftovers visibly reach the last capturer before scores',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -86,8 +62,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2200));
     await tester.pump();
     expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
-    expect(
-        find.text('Leftover cards → Thales\n13 points · No seep'), findsOneWidget);
+    expect(find.text('Leftover cards → Thales\n13 points · No seep'),
+        findsOneWidget);
     final totals = saved(prefs).totals.toList();
     expect(saved(prefs).captured[1], containsAll([50, 9, 0]));
     await tester.tap(find.byKey(const Key('last-capture-player-2')));

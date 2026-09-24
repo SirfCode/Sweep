@@ -7,6 +7,20 @@ extension _TableView on _SweepScreenState {
         MoveKind.raise => textFor('raise_to', {'p0': move.value}),
         MoveKind.discard => textFor('discard'),
       };
+  int _movePriority(Move move) => switch (move.kind) {
+        MoveKind.capture => 0,
+        MoveKind.raise => 1,
+        MoveKind.build => 2,
+        MoveKind.discard => 3,
+      };
+  List<Move> _sortedMoves(Iterable<Move> moves) => moves.toList()
+    ..sort((a, b) {
+      final kind = _movePriority(a).compareTo(_movePriority(b));
+      if (kind != 0) return kind;
+      final value = a.value.compareTo(b.value);
+      if (value != 0) return value;
+      return a.key.compareTo(b.key);
+    });
 
   Future<void> _showScores() => _overlay(() => showDialog<void>(
       context: context,
@@ -37,9 +51,10 @@ extension _TableView on _SweepScreenState {
           content: Text(textFor('keep_this_card_for_your_house_or'))));
       return;
     }
+    final sorted = _sortedMoves(moves);
     _update(() {
       _selectedCard = _selectedCard == card ? null : card;
-      _preview = _selectedCard == null ? null : moves.first;
+      _preview = _selectedCard == null ? null : sorted.first;
     });
   }
 
@@ -51,10 +66,9 @@ extension _TableView on _SweepScreenState {
 
   void _target(bool Function(Move) matches) {
     if (!_canPlay || _selectedCard == null) return;
-    final options = _game!.position
+    final options = _sortedMoves(_game!.position
         .legalMoves()
-        .where((m) => m.card == _selectedCard && matches(m))
-        .toList();
+        .where((m) => m.card == _selectedCard && matches(m)));
     if (options.isEmpty) return;
     final current = options.indexWhere((m) => m.key == _preview?.key);
     _update(() => _preview = options[(current + 1) % options.length]);
@@ -163,7 +177,8 @@ extension _TableView on _SweepScreenState {
         final g = _game!;
         final human = _canPlay;
         final legal = human ? g.position.legalMoves() : <Move>[];
-        final options = legal.where((m) => m.card == _selectedCard).toList();
+        final options =
+            _sortedMoves(legal.where((m) => m.card == _selectedCard));
         final current = _moving ?? _preview;
         final selected = current?.selectedLoose ?? <int>{};
         final selectedHouses = {

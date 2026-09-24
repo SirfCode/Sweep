@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'audio/sfx_manager.dart';
+import 'app_share.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/strings.dart';
@@ -160,8 +161,6 @@ class _SweepScreenState extends State<SweepScreen>
   BotDifficulty get _newDifficulty =>
       BotDifficulty.forAccount(_session.subject != null);
   SfxManager get _sfx => widget.sfx;
-  bool get _turnVibration =>
-      widget.preferences.getBool('seep.turnVibration') ?? true;
 
   Future<void> _soundDialog() => _overlay(() => showDialog<void>(
       context: context,
@@ -172,15 +171,6 @@ class _SweepScreenState extends State<SweepScreen>
                       title: Text(textFor('sound_effects')),
                       content:
                           Column(mainAxisSize: MainAxisSize.min, children: [
-                        SwitchListTile(
-                            key: const Key('turn-vibration'),
-                            title: Text(textFor('turn_vibration')),
-                            value: _turnVibration,
-                            onChanged: (value) async {
-                              await widget.preferences
-                                  .setBool('seep.turnVibration', value);
-                              if (context.mounted) refresh(() {});
-                            }),
                         SwitchListTile(
                             key: const Key('sfx-enabled'),
                             title: Text(textFor('sound_effects')),
@@ -627,9 +617,6 @@ class _SweepScreenState extends State<SweepScreen>
           _game?.phase != Phase.results &&
           (oldTurn != 0 || oldDeal != _game?.dealNumber)) {
         unawaited(_sfx.play(Sfx.turn));
-        if (_turnVibration && _foreground && !_atHome) {
-          unawaited(HapticFeedback.lightImpact().catchError((Object _) {}));
-        }
       }
       _save();
       _scheduleBot();
@@ -827,6 +814,8 @@ class _SweepScreenState extends State<SweepScreen>
                         _history();
                       } else if (value == 'sound') {
                         _soundDialog();
+                      } else if (value == 'share') {
+                        AppShare.seep();
                       } else {
                         setState(() => _pace =
                             {'slow': 1.6, 'normal': 1.0, 'fast': .5}[value]!);
@@ -867,6 +856,9 @@ class _SweepScreenState extends State<SweepScreen>
                             PopupMenuItem(
                                 value: 'history',
                                 child: Text(textFor('deal_log'))),
+                          PopupMenuItem(
+                              value: 'share',
+                              child: Text(textFor('share_seep'))),
                           PopupMenuItem(
                               value: 'rules',
                               child: Text(textFor('how_to_play'))),
@@ -1090,6 +1082,11 @@ class _SweepScreenState extends State<SweepScreen>
                         FilledButton(
                             onPressed: _newGame,
                             child: Text(textFor('play_again'))),
+                      SizedBox(height: 12),
+                      OutlinedButton.icon(
+                          onPressed: AppShare.seep,
+                          icon: Icon(Icons.share_outlined),
+                          label: Text(textFor('share_seep'))),
                       SizedBox(height: 12),
                       TextButton(
                           onPressed: _home,
