@@ -62,7 +62,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2200));
     await tester.pump();
     expect(find.byKey(const Key('leftover-flight')), findsOneWidget);
-    expect(find.text('Leftover cards → Kabir\n13 points · No seep'),
+    expect(find.text('Leftover cards → Kabir\n13 points'),
         findsOneWidget);
     final totals = saved(prefs).totals.toList();
     expect(saved(prefs).captured[1], containsAll([50, 9, 0]));
@@ -234,7 +234,7 @@ void main() {
     expect(label('score-game-total-0'), 'Game 145');
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('bot reveals the call then waits 20 seconds even on Fast',
+  testWidgets('bot reveals the call then waits 17 seconds even on Fast',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -254,7 +254,7 @@ void main() {
             of: find.byKey(const Key('table-call')),
             matching: find.text(rankName(saved(prefs).calledValue!))),
         findsOneWidget);
-    expect(find.textContaining('Next move in 20s'), findsOneWidget);
+    expect(find.textContaining('Next move in 17s'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1));
     expect(find.textContaining('Next move in 19s'), findsOneWidget);
     await tester.pump(const Duration(seconds: 18));
@@ -474,7 +474,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     expect(saved(prefs).plays, 0);
     await tester.tap(find.byKey(const Key('pause')));
-    await tester.pump(const Duration(seconds: 20));
+    await tester.pump(const Duration(seconds: 17));
     expect(saved(prefs).plays, 0);
     await tester.tap(find.byKey(const Key('pause')));
     await tester.pump();
@@ -485,7 +485,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1700));
     await tester.tap(find.byKey(const Key('home')));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 20));
+    await tester.pump(const Duration(seconds: 17));
     expect(saved(prefs).plays, 1);
     await tester.pumpWidget(const SizedBox());
   });

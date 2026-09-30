@@ -15,6 +15,7 @@ enum Sfx {
   invalid,
   turn,
   score,
+  dealWin,
   roundWin,
   roundLose,
   gameWin
@@ -36,6 +37,7 @@ const sfxCatalog = <Sfx, SfxSpec>{
   Sfx.invalid: SfxSpec(['invalid.wav'], .35, 500),
   Sfx.turn: SfxSpec(['turn.wav'], .4, 900),
   Sfx.score: SfxSpec(['score.wav'], .3, 500),
+  Sfx.dealWin: SfxSpec(['deal_win.wav'], .68, 2500),
   Sfx.roundWin: SfxSpec(['round_win.wav'], .6, 2000),
   Sfx.roundLose: SfxSpec(['round_lose.wav'], .45, 2000),
   Sfx.gameWin: SfxSpec(['game_win.wav'], .7, 3000),

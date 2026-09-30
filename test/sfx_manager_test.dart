@@ -165,7 +165,7 @@ void main() {
         expect(backend.played, isNot(contains('round_win.wav')));
         await tester.pump(const Duration(seconds: 5));
         await tester.pump();
-        expect(backend.played, containsAll(['score.wav', 'round_win.wav']));
+        expect(backend.played, containsAll(['score.wav', 'deal_win.wav']));
       }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

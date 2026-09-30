@@ -104,8 +104,8 @@ const messageCatalog = {
   "you": {"en": "You  ", "hi": "आप  "},
   "call_2": {"en": "Call {p0}", "hi": "{p0} की बोली"},
   "leftover_cards_points_no_seep": {
-    "en": "Leftover cards → {p0}\n{p1} points · No seep",
-    "hi": "बचे पत्ते → {p0}\n{p1} अंक · कोई सीप नहीं"
+    "en": "Leftover cards → {p0}\n{p1} points",
+    "hi": "बचे पत्ते → {p0}\n{p1} अंक"
   },
   "seep": {"en": "Seep", "hi": "सीप"},
   "scores_in_a_moment": {"en": "Scores in a moment…", "hi": "अंक अभी दिखेंगे…"},
@@ -278,8 +278,8 @@ const messageCatalog = {
     "hi": "{p0} · सीप! +{p1} अस्थायी अंक"
   },
   "collects_leftover_cards_points_no_seep": {
-    "en": "{p0} collects {p1} leftover cards · {p2} points · No seep",
-    "hi": "{p0} को {p1} बचे पत्ते मिले · {p2} अंक · कोई सीप नहीं"
+    "en": "{p0} collects {p1} leftover cards · {p2} points",
+    "hi": "{p0} को {p1} बचे पत्ते मिले · {p2} अंक"
   },
   "calls": {"en": "{p0} calls {p1}", "hi": "{p0} की बोली {p1}"},
   "card_points_2": {

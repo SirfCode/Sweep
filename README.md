@@ -53,7 +53,7 @@ Tap any bot's player icon, or **You** beside your remaining-card count, to view 
 
 Turns animate the played card onto the table, pause, then gather the affected cards into a capture or house. Normal bot turns take about 3.6 seconds; the speed menu offers Slow (about 5.8 seconds) and Fast (about 1.8 seconds), remembered between sessions. Speed changes apply to subsequent moves. Pause freezes the current animation. Opening How to play, the deal log, or house details also pauses play. Returning home during an animation retains the last completed turn; Resume continues from that saved position. Existing 0.1 saves remain compatible.
 
-After a bot calls 9–13 and the table is revealed, the game gives you 20 seconds to study the cards before the opening move. This viewing pause is independent of the speed setting and restarts when resuming an opening bot turn. Your own opening turn has no time limit: play continues only after you confirm your move.
+After a bot calls 9–13 and the table is revealed, the game gives you 17 seconds to study the cards before the opening move. This viewing pause is independent of the speed setting and restarts when resuming an opening bot turn. Your own opening turn has no time limit: play continues only after you confirm your move.
 
 After the final move resolves, any leftover cards stay visible briefly and travel to the last capturer in a three-second collection animation, labelled with the recipient and card points. The table then remains visible for five seconds before the deal-score screen opens. The completed deal is saved immediately; pausing or inspecting a player also pauses the collection animation.
 

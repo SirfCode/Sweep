@@ -521,7 +521,7 @@ class SweepGame {
                   : SweepTiming.intermediate;
           if (timing == SweepTiming.finalPlay) {
             _log(
-                '${seatNames[actor]} clears the table on the final play; no seep bonus.',
+                '${seatNames[actor]} clears the table on the final play.',
                 event: 'finalClear',
                 args: {'player': actor});
           } else {
@@ -585,7 +585,7 @@ class SweepGame {
       }
       captured[lastCaptureTeam!].addAll(loose);
       _log(
-          'Remaining table cards go to ${lastCaptureTeam == 0 ? 'your team' : 'opponents'}; no seep bonus.',
+          'Remaining table cards go to ${lastCaptureTeam == 0 ? 'your team' : 'opponents'}.',
           event: 'leftovers',
           args: {'team': lastCaptureTeam});
       loose = [];

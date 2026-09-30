@@ -46,8 +46,8 @@ String historyText(BuildContext context, Map<String, dynamic> record) {
   if (record['event'] == 'finalClear' ||
       (record['event'] == 'clear' && a['points'] == 0)) {
     return Localizations.localeOf(context).languageCode == 'hi'
-        ? '$player ने आखिरी चाल में मेज़ खाली की; कोई सीप बोनस नहीं।'
-        : '$player clears the table on the final play; no seep bonus.';
+        ? '$player ने आखिरी चाल में मेज़ खाली की।'
+        : '$player clears the table on the final play.';
   }
   if (Localizations.localeOf(context).languageCode != 'hi') return english;
   return switch (record['event']) {

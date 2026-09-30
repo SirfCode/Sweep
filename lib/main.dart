@@ -43,7 +43,7 @@ class SweepApp extends StatefulWidget {
       this.sfxManager,
       required this.preferences,
       this.botDelay = const Duration(milliseconds: 1500),
-      this.openingDelay = const Duration(seconds: 20)});
+      this.openingDelay = const Duration(seconds: 17)});
   @override
   State<SweepApp> createState() => _AppState();
 }
@@ -547,7 +547,7 @@ class _SweepScreenState extends State<SweepScreen>
           } else if (g.winner == 1 || g.lastScores[0] < g.lastScores[1]) {
             unawaited(_sfx.play(Sfx.roundLose));
           } else if (g.lastScores[0] > g.lastScores[1]) {
-            unawaited(_sfx.play(Sfx.roundWin));
+            unawaited(_sfx.play(Sfx.dealWin));
           }
         }
       });
