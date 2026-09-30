@@ -74,7 +74,7 @@ SweepGame ariPosition() {
 }
 
 void main() {
-  test('Homer avoids the known jack sweep across seeds and logs the reason', () {
+  test('Zara avoids the known jack sweep across seeds and logs the reason', () {
     final g = ariPosition();
     for (var seed = 0; seed < 32; seed++) {
       final bot = SweepBot(seed);
@@ -94,7 +94,7 @@ void main() {
     }
   });
 
-  test('every sampled Thales hand contains the publicly proved last jack', () {
+  test('every sampled Kabir hand contains the publicly proved last jack', () {
     final g = ariPosition();
     for (var seed = 0; seed < 64; seed++) {
       final sampled = SweepBot(seed).sampleWorld(g.position)!;
@@ -110,7 +110,7 @@ void main() {
     final g = ariPosition();
     g.play(
         g.position.legalMoves().firstWhere((m) => m.kind == MoveKind.discard));
-    // Thales takes Homer's house. Homer still has the nine he publicly promised.
+    // Kabir takes Zara's house. Zara still has the nine she publicly promised.
     g.play(g.position.legalMoves().firstWhere((m) => m.card == 47));
     expect(g.houses, isEmpty);
     expect(g.knownRanks[2], contains(9));

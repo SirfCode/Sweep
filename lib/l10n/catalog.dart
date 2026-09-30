@@ -43,8 +43,8 @@ const messageCatalog = {
         "Keep this card for your house, or choose a card that follows the opening call.",
     "hi": "यह पत्ता अपने घर के लिए रखें, या शुरुआती बोली के अनुसार पत्ता चुनें।"
   },
-  "you_ari": {"en": "You & Homer", "hi": "आप और Homer"},
-  "mira_dev": {"en": "Plato & Thales", "hi": "Plato और Thales"},
+  "you_ari": {"en": "You & Zara", "hi": "आप और Zara"},
+  "mira_dev": {"en": "Rumi & Kabir", "hi": "Rumi और Kabir"},
   "game": {"en": "Game {p0}", "hi": "कुल {p0}"},
   "this_deal": {"en": "THIS DEAL", "hi": "इस बाज़ी में"},
   "card_pts": {"en": "{p0} card pts", "hi": "पत्तों के {p0} अंक"},
@@ -241,10 +241,10 @@ const messageCatalog = {
     "hi": "पत्ता चुनें। खेल का आनंद लें।\nआपकी जगह तैयार है। • v{version}"
   },
   "deal_complete_2": {"en": "Deal complete", "hi": "बाज़ी पूरी"},
-  "you_and_ari_win": {"en": "You and Homer win!", "hi": "आप और Homer जीत गए!"},
+  "you_and_ari_win": {"en": "You and Zara win!", "hi": "आप और Zara जीत गए!"},
   "mira_and_dev_win": {
-    "en": "Plato and Thales win",
-    "hi": "Plato और Thales जीत गए"
+    "en": "Rumi and Kabir win",
+    "hi": "Rumi और Kabir जीत गए"
   },
   "a_lead_of_after_a_completed_deal": {
     "en": "A lead of 104 after a completed deal wins the game.",
@@ -254,8 +254,8 @@ const messageCatalog = {
     "en": "Final lead: {p0} points.",
     "hi": "अंतिम बढ़त: {p0} अंक।"
   },
-  "you_ari_2": {"en": "You + Homer", "hi": "आप + Homer"},
-  "mira_dev_2": {"en": "Plato + Thales", "hi": "Plato + Thales"},
+  "you_ari_2": {"en": "You + Zara", "hi": "आप + Zara"},
+  "mira_dev_2": {"en": "Rumi + Kabir", "hi": "Rumi + Kabir"},
   "captured_card_points": {
     "en": "Captured card points",
     "hi": "उठाए पत्तों के अंक"

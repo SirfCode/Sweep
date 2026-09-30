@@ -483,8 +483,8 @@ class PlayerSeat extends StatelessWidget {
                         quarterTurns: seat == 2
                             ? 0
                             : seat == 3
-                                ? 1
-                                : 3,
+                                ? 3
+                                : 1,
                         child:
                             Column(mainAxisSize: MainAxisSize.min, children: [
                           Text(playerName(context, seat),

@@ -1,10 +1,12 @@
 part of 'main.dart';
 
 extension _TableView on _SweepScreenState {
+  static const actionOptionBorder = Color(0xFF8FD8D2);
+
   String _moveLabel(Move move) => switch (move.kind) {
         MoveKind.capture => textFor('capture'),
-        MoveKind.build => textFor('build', {'p0': move.value}),
-        MoveKind.raise => textFor('raise_to', {'p0': move.value}),
+        MoveKind.build => textFor('build', {'p0': rankName(move.value)}),
+        MoveKind.raise => textFor('raise_to', {'p0': rankName(move.value)}),
         MoveKind.discard => textFor('discard'),
       };
   int _movePriority(Move move) => switch (move.kind) {
@@ -762,13 +764,19 @@ extension _TableView on _SweepScreenState {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: gold.withValues(alpha: .25))),
         child: Row(children: [
-          IconButton(
+          IconButton.filledTonal(
               tooltip: textFor('cancel_selection'),
+              iconSize: 28,
+              padding: const EdgeInsets.all(10),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: .10),
+                  foregroundColor: cream),
               onPressed: () => _update(() {
                     _selectedCard = null;
                     _preview = null;
                   }),
-              icon: Icon(Icons.close, size: 18)),
+              icon: Icon(Icons.close)),
           Expanded(
               child: SizedBox(
                   height: compact ? 46 : 79,
@@ -792,9 +800,11 @@ extension _TableView on _SweepScreenState {
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
+                                        width: move.key == m.key ? 2 : 1.4,
                                         color: move.key == m.key
                                             ? gold
-                                            : Colors.white12)),
+                                            : actionOptionBorder
+                                                .withValues(alpha: .78))),
                                 child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
