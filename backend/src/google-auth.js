@@ -15,21 +15,55 @@ export function googleVerifier(audience, client = new OAuth2Client()) {
   };
 }
 
-export async function googleUser(client, identity) {
+function cleanCountry(value) {
+  if (typeof value !== 'string') return null;
+  const country = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(country) ? country : null;
+}
+
+function cleanLocale(value) {
+  if (typeof value !== 'string') return null;
+  const locale = value.trim().replaceAll('_', '-');
+  return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(locale)
+    ? locale
+    : null;
+}
+
+export function userRegionHints(headers = {}) {
+  return {
+    country: cleanCountry(headers['x-seep-country'] ?? headers['cf-ipcountry']),
+    locale: cleanLocale(
+      headers['x-seep-locale'] ?? headers['accept-language']?.split(',')[0])
+  };
+}
+
+export async function googleUser(client, identity, hints = {}) {
+  const country = cleanCountry(hints.country);
+  const locale = cleanLocale(hints.locale);
   // Stable Google subject is the identity; email is only a verified attribute.
   const existing = await client.query('SELECT id FROM seep_users WHERE google_sub=$1 FOR UPDATE', [identity.sub]);
   if (existing.rowCount) {
-    const result = await client.query(`UPDATE seep_users SET email=$2, display_name=$3
-      WHERE id=$1 RETURNING id, email, display_name AS "displayName", google_sub AS "googleSubject", analysis_enabled AS "analysisEnabled"`,
-    [existing.rows[0].id, identity.email, identity.name]);
+    const result = await client.query(`UPDATE seep_users
+      SET email=$2, display_name=$3,
+          country_code=COALESCE($4, country_code),
+          locale=COALESCE($5, locale)
+      WHERE id=$1 RETURNING id, email, display_name AS "displayName",
+        google_sub AS "googleSubject", analysis_enabled AS "analysisEnabled",
+        country_code AS "countryCode", locale`,
+    [existing.rows[0].id, identity.email, identity.name, country, locale]);
     return result.rows[0];
   }
-  const result = await client.query(`INSERT INTO seep_users(email, display_name, google_sub)
-    VALUES ($1,$2,$3) ON CONFLICT(email) DO UPDATE
-    SET google_sub=EXCLUDED.google_sub, display_name=EXCLUDED.display_name
+  const result = await client.query(`INSERT INTO seep_users(email, display_name, google_sub, country_code, locale)
+    VALUES ($1,$2,$3,$4,$5) ON CONFLICT(email) DO UPDATE
+    SET google_sub=EXCLUDED.google_sub,
+        display_name=EXCLUDED.display_name,
+        country_code=COALESCE(EXCLUDED.country_code, seep_users.country_code),
+        locale=COALESCE(EXCLUDED.locale, seep_users.locale)
     WHERE seep_users.google_sub IS NULL OR seep_users.google_sub=EXCLUDED.google_sub
-    RETURNING id, email, display_name AS "displayName", google_sub AS "googleSubject", analysis_enabled AS "analysisEnabled"`,
-  [identity.email, identity.name, identity.sub]);
+    RETURNING id, email, display_name AS "displayName",
+      google_sub AS "googleSubject", analysis_enabled AS "analysisEnabled",
+      country_code AS "countryCode", locale`,
+  [identity.email, identity.name, identity.sub, country, locale]);
   if (!result.rowCount) {
     const error = new Error('Account conflict'); error.statusCode = 409; throw error;
   }

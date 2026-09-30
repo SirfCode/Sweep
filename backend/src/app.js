@@ -2,7 +2,7 @@ import Fastify, { LogController } from 'fastify';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { transaction } from './database.js';
 import { reportBody, reportsQuery, statsQuery, userParams, snapshotBody } from './schema.js';
-import { googleVerifier, googleUser } from './google-auth.js';
+import { googleVerifier, googleUser, userRegionHints } from './google-auth.js';
 
 const digest = value => createHash('sha256').update(value).digest();
 function auth(key) {
@@ -82,7 +82,8 @@ export function buildApp({ pool, adminKey, uploadKey, logger = false,
   });
 
   app.post('/api/seep/auth/google', { onRequest: googleAuth }, async request => {
-    const user = await transaction(pool, client => googleUser(client, request.googleIdentity));
+    const user = await transaction(pool, client =>
+      googleUser(client, request.googleIdentity, userRegionHints(request.headers)));
     return { user };
   });
 

@@ -170,6 +170,39 @@ test('Google login persists verified identity; email changes keep the same accou
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM seep_users')).rows[0].n, 1);
 });
 
+test('Google login stores coarse locale and country only on the user row', async () => {
+  const token = tokenFor('region@example.com', 'region-sub', 'Region Name');
+  const login = headers => app.inject({
+    method: 'POST',
+    url: '/api/seep/auth/google',
+    headers: { authorization: `Bearer ${token}`, ...headers }
+  });
+  const first = await login({ 'x-seep-locale': 'en-IN', 'cf-ipcountry': 'in' });
+  assert.equal(first.statusCode, 200);
+  assert.equal(first.json().user.locale, 'en-IN');
+  assert.equal(first.json().user.countryCode, 'IN');
+  let user = (await pool.query('SELECT locale, country_code FROM seep_users')).rows[0];
+  assert.equal(user.locale, 'en-IN');
+  assert.equal(user.country_code, 'IN');
+
+  await login({ 'x-seep-locale': 'bad locale', 'cf-ipcountry': '999' });
+  user = (await pool.query('SELECT locale, country_code FROM seep_users')).rows[0];
+  assert.equal(user.locale, 'en-IN');
+  assert.equal(user.country_code, 'IN');
+
+  const other = await app.inject({
+    method: 'POST',
+    url: '/api/seep/auth/google',
+    headers: { authorization: `Bearer ${tokenFor('blank@example.com', 'blank-sub')}` }
+  });
+  assert.equal(other.statusCode, 200);
+  const blank = (await pool.query(
+    'SELECT locale, country_code FROM seep_users WHERE google_sub=$1',
+    ['blank-sub'])).rows[0];
+  assert.equal(blank.locale, null);
+  assert.equal(blank.country_code, null);
+});
+
 test('forged email/subject and invalid bearer cannot impersonate another user', async () => {
   const token = tokenFor('owner@gmail.com', 'owner-sub', 'Verified Name');
   const send = body => app.inject({method:'POST', url:'/api/seep/reports', headers:{authorization:`Bearer ${token}`},payload:body});

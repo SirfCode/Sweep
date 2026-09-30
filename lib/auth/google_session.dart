@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -102,9 +103,14 @@ class GoogleSession extends ChangeNotifier {
     }
     final token = account.authentication.idToken;
     if (token == null) throw const _SignInFailure('missing_google_token');
+    final locale = WidgetsBinding.instance.platformDispatcher.locale;
+    final localeTag = locale.countryCode == null || locale.countryCode!.isEmpty
+        ? locale.languageCode
+        : '${locale.languageCode}-${locale.countryCode}';
     final response = await _client
         .post(Uri.parse('$apiBase/api/seep/auth/google'), headers: {
-      'Authorization': 'Bearer $token'
+      'Authorization': 'Bearer $token',
+      'X-Seep-Locale': localeTag
     }).timeout(const Duration(seconds: 60));
     if (response.statusCode != 200) {
       throw _SignInFailure('http_${response.statusCode}');
