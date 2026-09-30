@@ -917,7 +917,7 @@ class _SweepScreenState extends State<SweepScreen>
                         style: TextStyle(
                             fontSize: 36, height: 1.15, color: cream)),
                     SizedBox(height: 24),
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Wrap(alignment: WrapAlignment.center, children: [
                       for (final card in [48, 22, 51])
                         Padding(
                             padding: const EdgeInsets.all(8),
