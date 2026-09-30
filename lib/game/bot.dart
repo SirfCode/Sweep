@@ -1,10 +1,23 @@
 import 'dart:math';
 import 'engine.dart';
 
+enum BotStrategy {
+  basic('Basic'),
+  balanced('Balanced');
+
+  final String label;
+  const BotStrategy(this.label);
+}
+
 /// Receives only its own hand and public information; simulated games are guesses.
 class SweepBot {
   final Random random;
-  SweepBot(int seed) : random = Random(seed);
+  final BotStrategy strategy;
+  SweepBot(int seed, {this.strategy = BotStrategy.balanced})
+      : random = Random(seed);
+  SweepBot.basic(int seed)
+      : strategy = BotStrategy.basic,
+        random = Random(seed);
   Map<String, dynamic> lastAnalysis = {};
 
   List<Move> _choices(Position p) {
@@ -42,6 +55,8 @@ class SweepBot {
         'chosen': move.key,
         'reason': reason,
         'search': 'tactical fallback',
+        'strategy': strategy.name,
+        'strategyLabel': strategy.label,
         'knownRanks': p.knownRanks.map((r) => r.toList()).toList(),
       };
       return move;
@@ -106,8 +121,8 @@ class SweepBot {
               _endgame(game, team, [160], -double.infinity, double.infinity));
           continue;
         }
-        const horizon = 4;
-        final policy = SweepBot(0);
+        final horizon = strategy == BotStrategy.balanced ? 5 : 4;
+        final policy = SweepBot(0, strategy: strategy);
         for (var ply = 1; ply < horizon && game.phase != Phase.results; ply++) {
           game.play(policy.tacticalMove(game.position),
               recordDiagnostic: false);
@@ -118,9 +133,11 @@ class SweepBot {
       final worst = outcomes.reduce(min);
       // Protect a substantial match lead; when behind, prefer expected gain.
       final protecting = p.totals[team] - p.totals[1 - team] > 50;
-      final value = mean * (protecting ? .8 : .95) +
-          worst * (protecting ? .2 : .05) -
-          50 * risks[move.key]!;
+      final balanced = strategy == BotStrategy.balanced;
+      final value = mean * (protecting ? .8 : (balanced ? .9 : .95)) +
+          worst * (protecting ? .2 : (balanced ? .1 : .05)) -
+          (balanced ? 68 : 50) * risks[move.key]! +
+          (balanced ? _balancedAdjustment(p, move) : 0);
       evaluations.add({
         'move': move.key,
         'sweepRisk': risks[move.key],
@@ -136,10 +153,16 @@ class SweepBot {
     lastAnalysis = {
       'knownRanks': p.knownRanks.map((r) => r.toList()).toList(),
       'chosen': best.key,
+      'strategy': strategy.name,
+      'strategyLabel': strategy.label,
       'reason': canAvoid && risks.values.any((r) => r == 1)
           ? 'Avoided a certain immediate sweep; a safe alternative exists.'
           : 'Best evaluated team score after opponent and partner replies.',
-      'search': p.plays >= 38 ? 'bounded endgame minimax' : 'four-ply rollout',
+      'search': p.plays >= 38
+          ? 'bounded endgame minimax'
+          : strategy == BotStrategy.balanced
+              ? 'balanced five-ply rollout'
+              : 'basic four-ply rollout',
       'excludedCertainSweeps': canAvoid
           ? moves.where((m) => risks[m.key] == 1).map((m) => m.key).toList()
           : <String>[],
@@ -155,7 +178,7 @@ class SweepBot {
       SweepGame game, int team, List<int> budget, double alpha, double beta) {
     if (game.phase == Phase.results) return _evaluate(game, team);
     if (budget[0]-- <= 0) {
-      final policy = SweepBot(0);
+      final policy = SweepBot(0, strategy: strategy);
       while (game.phase != Phase.results) {
         game.play(policy.tacticalMove(game.position), recordDiagnostic: false);
       }
@@ -280,6 +303,47 @@ class SweepBot {
       MoveKind.build || MoveKind.raise => 8 + points * 2,
       MoveKind.discard => -cardOf(m.card).points.toDouble(),
     };
+  }
+
+  double _balancedAdjustment(Position p, Move m) {
+    final affected = p.affectedCards(m);
+    final team = p.seat % 2;
+    var value = 0.0;
+    switch (m.kind) {
+      case MoveKind.capture:
+        value += pointsOf([m.card, ...affected]) * .35;
+        if (m.selectedLoose.length == p.loose.length &&
+            m.houseIndexes.length == p.houses.length &&
+            p.plays < 47) {
+          value += 8;
+        }
+      case MoveKind.build:
+      case MoveKind.raise:
+        final owners = p.resultingOwners(m);
+        if (owners.any((s) => s % 2 == team)) value += 3;
+        if (owners.any((s) => s % 2 != team)) value -= 5;
+        value += p.hand
+                .where((c) => c != m.card && rankOf(c) == m.value)
+                .length *
+            2;
+      case MoveKind.discard:
+        value -= cardOf(m.card).points * 1.5;
+        final keepsRank =
+            p.hand.any((c) => c != m.card && rankOf(c) == rankOf(m.card));
+        if (p.loose.isEmpty && !keepsRank) {
+          value -= rankOf(m.card) >= 9 ? 4 : 2;
+        }
+    }
+    for (var i = 0; i < p.houses.length; i++) {
+      final house = p.houses[i];
+      if (house.owners.any((s) => s % 2 != team)) {
+        value -= pointsOf(house.cards) * .08;
+        if (m.kind == MoveKind.capture && m.houseIndexes.contains(i)) {
+          value += 6;
+        }
+      }
+    }
+    return value;
   }
 
   double _evaluate(SweepGame g, int team) {

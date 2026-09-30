@@ -9,7 +9,7 @@ import '../auth/google_session.dart';
 /// Native Google-authenticated completed-game uploads. Guest play stays local.
 class AppReporting with WidgetsBindingObserver {
   static const version =
-      String.fromEnvironment('SEEP_APP_VERSION', defaultValue: '0.17.0+19');
+      String.fromEnvironment('SEEP_APP_VERSION', defaultValue: '0.18.0+20');
   final CompletedReportQueue queue;
   final CompletedReportQueue snapshots;
   final http.Client client;

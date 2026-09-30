@@ -10,6 +10,7 @@ import 'l10n/play_guide.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'game/bot.dart';
 import 'game/difficulty.dart';
 import 'game/engine.dart';
 import 'table_art.dart';
@@ -381,8 +382,9 @@ class _SweepScreenState extends State<SweepScreen>
       'dealStatus': game.phase == Phase.results ? 'completed' : 'in_progress',
       'savedAt': DateTime.now().toUtc().toIso8601String(),
       'appVersion': AppReporting.version,
-      'botStrategy':
-          _gameDifficulty == BotDifficulty.guest ? 'v0.5.0' : 'current',
+      'botStrategy': _gameDifficulty == BotDifficulty.guest
+          ? BotStrategy.basic.name
+          : BotStrategy.balanced.name,
       'snapshot': {
         'complete': log['complete'],
         'deal': (log['deals'] as List).last,

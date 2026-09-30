@@ -95,7 +95,7 @@ When reporting a move, identify the player and turn, their cards, the table, any
 - Most earlier replies use a simpler tactical policy. They may miss multi-turn traps or sophisticated human plans.
 - The bot remembers positive evidence such as a promised rank. It does not yet infer everything a player probably lacks from past discards or missed opportunities.
 - The seep guard is deliberately conservative. It may reject a risky line that a stronger, longer search could justify.
-- There are no separate difficulty levels, opponent-specific learning or player-style adaptation yet.
+- The named profiles are Basic and Balanced. Medium/Hard difficulty, opponent-specific learning and player-style adaptation are not implemented yet.
 
 Useful future work would be stronger reply selection, broader testing against skilled people, and more samples when a decision is close. Those are future improvements, not features claimed by this version.
 

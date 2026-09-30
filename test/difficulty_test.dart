@@ -68,17 +68,22 @@ void main() {
       game.play(move);
       game.validate();
     }
-    expect(guest.lastAnalysis['strategy'], 'v0.5.0');
+    expect(guest.lastAnalysis['strategy'], 'basic');
+    expect(guest.lastAnalysis['strategyLabel'], 'Basic');
   });
 
-  test('Low uses current strategy and future levels cannot run', () {
+  test('Low uses balanced strategy and future levels cannot run', () {
     final game = SweepGame.newGame(seed: 42, dealer: 3);
     final bot = GameBot(BotDifficulty.low, 18);
-    final current = SweepBot(18);
-    expect(bot.chooseCall(game.position), current.chooseCall(game.position));
+    final balanced = SweepBot(18, strategy: BotStrategy.balanced);
+    final basic = SweepBot.basic(18);
+    expect(bot.chooseCall(game.position), balanced.chooseCall(game.position));
     game.call(game.position.calls.first);
     expect(bot.chooseMove(game.position).key,
-        current.chooseMove(game.position).key);
+        balanced.chooseMove(game.position).key);
+    expect(bot.lastAnalysis['strategy'], 'balanced');
+    expect(bot.lastAnalysis['strategyLabel'], 'Balanced');
+    expect(basic.strategy, BotStrategy.basic);
     for (final difficulty in [BotDifficulty.medium, BotDifficulty.hard]) {
       expect(() => GameBot(difficulty, 1), throwsArgumentError);
     }

@@ -23,9 +23,15 @@ class GameBot {
   final BotDifficulty difficulty;
   final GuestBot? _guest;
   final SweepBot? _low;
+  final BotStrategy strategy;
   GameBot(this.difficulty, int seed)
-      : _guest = difficulty == BotDifficulty.guest ? GuestBot(seed) : null,
-        _low = difficulty == BotDifficulty.low ? SweepBot(seed) : null {
+      : strategy = difficulty == BotDifficulty.guest
+            ? BotStrategy.basic
+            : BotStrategy.balanced,
+        _guest = difficulty == BotDifficulty.guest ? GuestBot(seed) : null,
+        _low = difficulty == BotDifficulty.low
+            ? SweepBot(seed, strategy: BotStrategy.balanced)
+            : null {
     if (!difficulty.enabled) throw ArgumentError('Difficulty not implemented');
   }
   int chooseCall(Position p) => _guest?.chooseCall(p) ?? _low!.chooseCall(p);
@@ -33,6 +39,8 @@ class GameBot {
   Map<String, dynamic> get lastAnalysis => {
         if (_low != null) ..._low.lastAnalysis,
         'difficulty': difficulty.name,
-        'strategy': _guest != null ? 'v0.5.0' : 'current',
+        'strategy': _guest != null ? BotStrategy.basic.name : strategy.name,
+        'strategyLabel':
+            _guest != null ? BotStrategy.basic.label : strategy.label,
       };
 }

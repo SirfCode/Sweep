@@ -12,12 +12,13 @@ Google to upload completed games; guest play stays local. See
 
 ## Bot strategy (development)
 
-Guests use the strategy preserved from `v0.5.0`, with the current rules engine.
-Signed-in players use the current stronger bot (internally **Low**). The compact
-home-screen row labels the available level **Easy** for both account states.
-Medium and Hard are visible but disabled. All three bots use the game's saved
-difficulty. Successful login discards an unfinished guest game and starts a new
-Low game; failed login keeps it. Cached signed-in accounts retain Low offline.
+Guests use the **Basic** strategy preserved from `v0.5.0`, with the current
+rules engine. Signed-in players use the **Balanced** profile by default for all
+three bots (internally **Low** difficulty). The compact home-screen row labels
+the available level **Easy** for both account states. Medium and Hard are
+visible but disabled. All three bots use the game's saved difficulty and
+profile. Successful login discards an unfinished guest game and starts a new Low
+game; failed login keeps it. Cached signed-in accounts retain Low offline.
 Signing out changes the next new game's level; an existing Low game retains its
 saved strategy. See `lib/game/difficulty.dart` and `test/difficulty_test.dart`.
 
@@ -29,9 +30,9 @@ The latest review corrects public-card reservations in seep-risk estimates and a
 
 The deal log offers **Review completed-deal decisions** after recorded deals finish. Each record includes the acting player's hand, public table and captured cards, legal moves with capture points, the chosen action, and the bot seed. **Copy diagnostics** copies the report for analysis. Records stay local with the save; the current and previous deal are retained. Current-deal hands stay hidden in the UI, and simulated moves produce no records. Older moves made before this feature cannot be reconstructed from the short textual log.
 
-All three bots use the same policy. They remember public captured cards, table cards, calls, house commitments, hand counts and scores, and see only their own hand. A called or promised rank remains known after a house disappears, until its owner plays that rank. A surviving house can prove another copy remains. This evidence persists in saves and constrains every sampled hand; bots never receive the real deck or another player's hand. Older saves recover evidence from recorded public actions where available, never from diagnostic hands; missing history stays unknown.
+All three Balanced bots use the same policy. They remember public captured cards, table cards, calls, house commitments, hand counts and scores, and see only their own hand. A called or promised rank remains known after a house disappears, until its owner plays that rank. A surviving house can prove another copy remains. This evidence persists in saves and constrains every sampled hand; bots never receive the real deck or another player's hand. Older saves recover evidence from recorded public actions where available, never from diagnostic hands; missing history stays unknown.
 
-Each decision compares up to seven candidate moves across four plausible unseen-card distributions. A certain immediate opponent seep is excluded when a zero-risk move exists. Simulations follow both opponents and the partner for one round; in the final ten plays, team minimax explores alternative replies with a budget of 160 expanded nodes per candidate/world, then uses tactical rollouts to final scoring. Evaluation considers team points, seep eligibility, house ownership, leftovers and match victory; a substantial match lead increases caution. Search is approximate and uses guessed hands, not exhaustive hidden-information solving. The opening-call policy still favours duplicate high ranks. Completed-deal diagnostics also record the decision reason, public rank evidence, candidate scores, seep risks and excluded giveaways.
+Each Balanced decision compares up to seven candidate moves across four plausible unseen-card distributions. A certain immediate opponent seep is excluded when a zero-risk move exists. Simulations follow both opponents and the partner for a slightly longer rollout than Basic; in the final ten plays, team minimax explores alternative replies with a budget of 160 expanded nodes per candidate/world, then uses tactical rollouts to final scoring. Evaluation considers team points, seep eligibility, house ownership, leftovers and match victory; a substantial match lead increases caution. Balanced adds stronger penalties for sweep exposure, point-card gifts, and opponent-owned houses while preserving the Basic legal move generator. Search is approximate and uses guessed hands, not exhaustive hidden-information solving. The opening-call policy still favours duplicate high ranks. Completed-deal diagnostics also record the decision reason, public rank evidence, candidate scores, seep risks, profile and excluded giveaways.
 
 Run `dart run tool/benchmark_bots.dart 100` to reproduce 200 paired deals against the preserved original policy, using seeds 700–799 and alternating teams/dealers. Public-memory policy measurement: 180 wins, 19 losses, 1 tie, mean score margin +156.01; seeps 753 versus 41. The previous sampled policy measured 179 wins, 21 losses, margin +146.51 and seeps 750 versus 59 against the same baseline. Decision latency was 18.2 ms at the 95th percentile and 147.7 ms maximum on the development machine; browser and device performance may differ. These measure strength against the original policy, not against human players or a direct match between policy revisions.
 
