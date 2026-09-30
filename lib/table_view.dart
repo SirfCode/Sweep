@@ -709,11 +709,13 @@ extension _TableView on _SweepScreenState {
                   style: TextStyle(color: Colors.white54, fontSize: 12)))
           : LayoutBuilder(builder: (context, area) {
               const cardWidth = 72.0;
-              final width =
-                  math.min(area.maxWidth - 24, hand.length * (cardWidth + 8));
+              final available = math.max(0.0, area.maxWidth - 24);
+              final width = math.max(
+                  cardWidth,
+                  math.min(available, hand.length * (cardWidth + 8)));
               final step = hand.length == 1
                   ? 0.0
-                  : (width - cardWidth) / (hand.length - 1);
+                  : math.max(0.0, (width - cardWidth) / (hand.length - 1));
               return Center(
                   child: SizedBox(
                       width: width,
@@ -756,19 +758,22 @@ extension _TableView on _SweepScreenState {
   Widget _moveTray(List<Move> options, bool compact) {
     final g = _game!;
     final move = _preview!;
-    return Container(
-        key: Key('move-tray'),
-        padding: const EdgeInsets.fromLTRB(8, 3, 8, 3),
-        decoration: BoxDecoration(
-            color: ink,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: gold.withValues(alpha: .25))),
-        child: Row(children: [
+    return LayoutBuilder(builder: (context, area) {
+      final narrow = area.maxWidth < 320;
+      return Container(
+          key: Key('move-tray'),
+          padding: EdgeInsets.fromLTRB(narrow ? 5 : 8, 3, narrow ? 5 : 8, 3),
+          decoration: BoxDecoration(
+              color: ink,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: gold.withValues(alpha: .25))),
+          child: Row(children: [
           IconButton.filledTonal(
               tooltip: textFor('cancel_selection'),
-              iconSize: 28,
-              padding: const EdgeInsets.all(10),
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              iconSize: narrow ? 26 : 28,
+              padding: EdgeInsets.all(narrow ? 8 : 10),
+              constraints: BoxConstraints(
+                  minWidth: narrow ? 42 : 48, minHeight: narrow ? 42 : 48),
               style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: .10),
                   foregroundColor: cream),
@@ -848,10 +853,16 @@ extension _TableView on _SweepScreenState {
                   backgroundColor: const Color(0xFF9DEA83),
                   foregroundColor: const Color(0xFF12351D),
                   elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 12)),
-              child:
-                  Text(_moveLabel(move), style: const TextStyle(fontSize: 16))),
+                  minimumSize: Size(narrow ? 44 : 64, narrow ? 42 : 44),
+                  padding: EdgeInsets.symmetric(horizontal: narrow ? 10 : 12)),
+              child: Tooltip(
+                  message: _moveLabel(move),
+                  child: narrow
+                      ? const Icon(Icons.check, size: 24)
+                      : Text(_moveLabel(move),
+                          style: const TextStyle(fontSize: 16)))),
         ]));
+    });
   }
 
   Future<void> _showLastCapture(int seat) => _overlay(() => showDialog<void>(
