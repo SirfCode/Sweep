@@ -543,12 +543,14 @@ class HouseStack extends StatelessWidget {
       required this.highlighted,
       required this.onTap});
   @override
-  Widget build(BuildContext context) => Semantics(
-      label:
-          '${house.pakka ? tr(context, 'pakka') : tr(context, 'house')} ${house.value}, ${house.owners.map((s) => playerName(context, s)).join(', ')}',
-      button: true,
-      selected: highlighted,
-      child: InkWell(
+  Widget build(BuildContext context) {
+    final value = rankName(house.value);
+    return Semantics(
+        label:
+            '${house.pakka ? tr(context, 'pakka') : tr(context, 'house')} $value, ${house.owners.map((s) => playerName(context, s)).join(', ')}',
+        button: true,
+        selected: highlighted,
+        child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Container(
@@ -587,7 +589,7 @@ class HouseStack extends StatelessWidget {
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           if (house.pakka)
                             const Icon(Icons.lock, size: 12, color: ink),
-                          Text('${house.value}',
+                          Text(value,
                               style: const TextStyle(
                                   color: ink,
                                   fontWeight: FontWeight.w900,
@@ -613,6 +615,7 @@ class HouseStack extends StatelessWidget {
                                         fontWeight: FontWeight.bold))))
                     ])),
               ]))));
+  }
 }
 
 class FeltSurface extends StatelessWidget {

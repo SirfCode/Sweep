@@ -1,12 +1,10 @@
 part of 'main.dart';
 
 extension _TableView on _SweepScreenState {
-  static const actionOptionBorder = Color(0xFF8FD8D2);
-
   String _moveLabel(Move move) => switch (move.kind) {
         MoveKind.capture => textFor('capture'),
-        MoveKind.build => textFor('build', {'p0': rankName(move.value)}),
-        MoveKind.raise => textFor('raise_to', {'p0': rankName(move.value)}),
+        MoveKind.build => textFor('build', {'p0': move.value}),
+        MoveKind.raise => textFor('raise_to', {'p0': move.value}),
         MoveKind.discard => textFor('discard'),
       };
   int _movePriority(Move move) => switch (move.kind) {
@@ -792,6 +790,7 @@ extension _TableView on _SweepScreenState {
                       itemBuilder: (context, index) {
                         final m = options[index];
                         final cards = g.position.affectedCards(m);
+                        final selected = move.key == m.key;
                         return InkWell(
                             key: Key('move-$index'),
                             onTap: () => _update(() => _preview = m),
@@ -800,22 +799,25 @@ extension _TableView on _SweepScreenState {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                    color: move.key == m.key
-                                        ? gold.withValues(alpha: .16)
+                                    color: selected
+                                        ? const Color(0xFF9DEA83)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                        width: move.key == m.key ? 2 : 1.4,
-                                        color: move.key == m.key
-                                            ? gold
-                                            : actionOptionBorder
-                                                .withValues(alpha: .78))),
+                                        width: selected ? 2 : 1.4,
+                                        color: gold)),
                                 child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(_moveLabel(m),
                                           style: TextStyle(
-                                              color: cream, fontSize: 13)),
+                                              color: selected
+                                                  ? const Color(0xFF12351D)
+                                                  : cream,
+                                              fontSize: 13,
+                                              fontWeight: selected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w400)),
                                       if (!compact)
                                         SizedBox(
                                             height: 48,
