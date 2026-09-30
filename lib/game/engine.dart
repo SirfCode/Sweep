@@ -215,6 +215,7 @@ class Position {
           for (var i = 0; i < houses.length; i++) {
             final house = houses[i];
             if (house.pakka || house.value + rank != value) continue;
+            if (house.owners.contains(seat)) continue;
             for (final groups in at(value).maximal()) {
               add(Move(MoveKind.raise, card, value,
                   groups: groups, houseIndexes: matches, raisedIndex: i));
